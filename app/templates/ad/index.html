@@ -1,0 +1,18 @@
+{% extends "layout.html" %}
+{% block content %}
+
+<h1 class="text-3xl font-bold mb-8">Active Directory</h1>
+
+<div class="bg-bgpanel border border-border p-6 rounded-lg">
+    <p class="text-gray-300 mb-4">AD tools coming soon...</p>
+
+    <form hx-get="/ad/search" hx-target="#ad-results" class="flex gap-2">
+        <input type="text" name="query" placeholder="Search AD users..."
+            class="flex-1 bg-bghover border border-border rounded px-3 py-2">
+        <button class="bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded">Search</button>
+    </form>
+</div>
+
+<div id="ad-results" class="mt-6"></div>
+
+{% endblock %}

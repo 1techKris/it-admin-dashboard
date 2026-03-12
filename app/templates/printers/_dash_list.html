@@ -1,0 +1,83 @@
+<div class="overflow-x-auto">
+  {% if printers and printers|length > 0 %}
+    <table class="min-w-full text-sm">
+      <thead class="bg-bghover text-gray-300">
+        <tr>
+          <th class="px-3 py-2 text-left">Name</th>
+          <th class="px-3 py-2 text-left">IP</th>
+          <th class="px-3 py-2 text-left">Status</th>
+          <th class="px-3 py-2 text-left">Supplies</th>
+          <th class="px-3 py-2 text-right">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for p in printers %}
+          {% set s = p.supplies %}
+          <tr class="border-t border-border hover:bg-bghover transition">
+            <!-- Name -->
+            <td class="px-3 py-2 font-semibold">
+              {{ p.name or p.ip_address }}
+            </td>
+
+            <!-- IP -->
+            <td class="px-3 py-2 text-gray-400">
+              {{ p.ip_address }}
+            </td>
+
+            <!-- Status -->
+            <td class="px-3 py-2">
+              {% if p.status %}
+                <span class="text-green-400">Online</span>
+              {% else %}
+                <span class="text-red-400">Offline</span>
+              {% endif %}
+            </td>
+
+            <!-- Supplies (inline, compact) -->
+            <td class="px-3 py-2 text-gray-300">
+              {% if s %}
+                {% set parts = [] %}
+                {% if s.c is not none %}{% set _ = parts.append("C:" ~ s.c ~ "%") %}{% endif %}
+                {% if s.m is not none %}{% set _ = parts.append("M:" ~ s.m ~ "%") %}{% endif %}
+                {% if s.y is not none %}{% set _ = parts.append("Y:" ~ s.y ~ "%") %}{% endif %}
+                {% if s.bk is not none %}{% set _ = parts.append("K:" ~ s.bk ~ "%") %}{% endif %}
+
+                {% if parts|length > 0 %}
+                  {{ parts|join(" · ") }}
+                {% else %}
+                  <span class="text-gray-500">N/A</span>
+                {% endif %}
+              {% else %}
+                <span class="text-gray-500">N/A</span>
+              {% endif %}
+            </td>
+
+            <!-- Actions -->
+            <td class="px-3 py-2 text-right">
+              <!-- Open (modal) -->
+              <button
+                class="px-2 py-1 bg-blue-600 hover:bg-blue-700 rounded text-white text-xs mr-2"
+                hx-get="/printers/{{ p.id }}/modal"
+                hx-target="body"
+                hx-swap="beforeend">
+                Open
+              </button>
+
+              <!-- Remove -->
+              <button
+                class="px-2 py-1 bg-gray-700 hover:bg-gray-600 rounded text-xs text-gray-200"
+                hx-post="/printers/{{ p.id }}/unmonitor"
+                hx-target="closest tr"
+                hx-swap="outerHTML"
+                onclick="if(!confirm('Remove this printer from monitoring?')) return false;">
+                Remove
+              </button>
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% else %}
+    <div class="text-gray-400 text-sm">No monitored printers.</div>
+  {% endif %}
+</div>

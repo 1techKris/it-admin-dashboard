@@ -1,0 +1,23 @@
+<div class="grid grid-cols-2 gap-4">
+  <div class="bg-bghover border border-border px-4 py-3 rounded">
+    <div class="text-gray-400 text-xs">Discovered</div>
+    <div class="text-xl font-semibold">{{ tot }}</div>
+  </div>
+  <div class="bg-bghover border border-border px-4 py-3 rounded">
+    <div class="text-gray-400 text-xs">Monitored</div>
+    <div class="text-xl font-semibold">{{ monitored }}</div>
+  </div>
+</div>
+
+{% if by_type %}
+  <div class="mt-4">
+    <div class="text-sm text-gray-400 mb-2">By Type</div>
+    <div class="flex flex-wrap gap-3">
+      {% for k, v in by_type.items() %}
+        <div class="bg-bgpanel border border-border px-3 py-1 rounded text-sm">
+          {{ k }}: <span class="font-semibold">{{ v }}</span>
+        </div>
+      {% endfor %}
+    </div>
+  </div>
+{% endif %}

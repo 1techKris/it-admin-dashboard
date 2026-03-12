@@ -1,0 +1,9 @@
+fastapi
+uvicorn
+sqlalchemy
+pydantic
+ldap3
+pysnmp
+python-dotenv
+jinja2
+python-multipart

@@ -1,0 +1,72 @@
+<!-- Backdrop -->
+<div class="fixed inset-0 bg-black/60 z-40"
+     hx-on="click: this.remove(); document.querySelector('#server-detail-modal')?.remove()">
+</div>
+
+<!-- Server Detail Modal -->
+<div id="server-detail-modal"
+     class="fixed inset-0 z-50 flex items-center justify-center p-4">
+
+  <div class="bg-bgpanel border border-border rounded-lg w-full max-w-5xl max-h-[90vh] overflow-hidden shadow-xl">
+
+    <!-- Header (sticky) -->
+    <div class="flex items-center justify-between p-4 border-b border-border bg-bgpanel sticky top-0 z-20">
+      <h2 class="text-2xl font-bold">
+        {{ server.hostname }}
+        <span class="text-gray-400 text-lg">({{ server.ip_address }})</span>
+      </h2>
+
+      <div class="flex gap-3">
+        <!-- EDIT -->
+        <button
+          class="px-3 py-1 rounded bg-blue-600 hover:bg-blue-700"
+          hx-get="/servers/{{ server.id }}/edit-modal"
+          hx-target="body"
+          hx-swap="beforeend">
+          Edit
+        </button>
+
+        <!-- DELETE -->
+        <button
+          class="px-3 py-1 rounded bg-red-600 hover:bg-red-700"
+          hx-delete="/servers/{{ server.id }}/delete"
+          hx-target="body"
+          hx-swap="none"
+          hx-confirm="Delete this server? This cannot be undone."
+          hx-on="htmx:afterRequest:
+            document.querySelector('.bg-black\\/60')?.remove();
+            document.querySelector('#server-detail-modal')?.remove();">
+          Delete
+        </button>
+
+        <!-- MANUAL WMI REFRESH -->
+        <button
+          class="px-3 py-1 rounded bg-gray-700 hover:bg-gray-600"
+          hx-post="/servers/{{ server.id }}/wmi/refresh"
+          hx-target="#wmi-{{ server.id }}"
+          hx-swap="outerHTML">
+          Refresh WMI
+        </button>
+
+        <!-- CLOSE -->
+        <button
+          class="px-3 py-1 rounded bg-gray-700 hover:bg-gray-600"
+          onclick="
+            document.querySelector('.bg-black\\/60')?.remove();
+            document.getElementById('server-detail-modal')?.remove();
+          ">
+          Close
+        </button>
+      </div>
+    </div>
+
+    <!-- Scrollable Content -->
+    <div class="overflow-y-auto p-4 max-h-[75vh]"
+         id="server-cards"
+         hx-get="/servers/{{ server.id }}/cards"
+         hx-trigger="load, every 10s">
+      <!-- Filled by HTMX -->
+    </div>
+
+  </div>
+</div>

@@ -1,0 +1,119 @@
+<div class="space-y-4 text-sm" id="wmi-{{ server.id }}">
+
+  {% if wmi %}
+
+    <!-- OS / CPU / RAM -->
+    <div class="grid grid-cols-3 gap-4">
+
+      <!-- OS -->
+      <div class="p-3 rounded bg-bgpanel border border-border">
+        <div class="text-xs text-gray-500">OS</div>
+        <div class="text-gray-300">
+          {{ wmi.os.Caption if wmi.os and wmi.os.Caption else "Unknown" }}
+        </div>
+      </div>
+
+      <!-- CPU -->
+      <div class="p-3 rounded bg-bgpanel border border-border">
+        <div class="text-xs text-gray-500">CPU</div>
+        <div class="text-gray-300">
+          {% if wmi.cpu and wmi.cpu[0] %}
+            {{ wmi.cpu[0].Name }}
+          {% else %}
+            Unknown
+          {% endif %}
+        </div>
+      </div>
+
+      <!-- RAM -->
+      <div class="p-3 rounded bg-bgpanel border border-border">
+        <div class="text-xs text-gray-500">RAM</div>
+        <div class="text-gray-300">
+          {% if wmi.ram and wmi.ram.TotalPhysicalMemory %}
+            {{ (wmi.ram.TotalPhysicalMemory / (1024**3)) | round }} GB
+          {% else %}
+            Unknown
+          {% endif %}
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Disks -->
+    <div class="mt-4">
+      <div class="text-xs text-gray-500 mb-2">Disks</div>
+      {% if wmi.disks and wmi.disks | length > 0 %}
+        <table class="w-full text-xs border-collapse">
+          <tr class="text-gray-500">
+            <th class="text-left p-1 border-b border-border">Drive</th>
+            <th class="text-left p-1 border-b border-border">Total</th>
+            <th class="text-left p-1 border-b border-border">Used</th>
+            <th class="text-left p-1 border-b border-border">%</th>
+          </tr>
+
+          {% for d in wmi.disks %}
+            <tr class="text-gray-300">
+              <td class="p-1">{{ d.DeviceID }}</td>
+              <td class="p-1">{{ (d.Size / (1024**3)) | round }} GB</td>
+              <td class="p-1">{{ ((d.Size - d.FreeSpace) / (1024**3)) | round }} GB</td>
+              <td class="p-1">
+                {% set pct = ((d.Size - d.FreeSpace) / d.Size * 100) | round %}
+                <span class="{% if pct > 90 %}text-red-400{% elif pct > 70 %}text-yellow-400{% else %}text-green-400{% endif %}">
+                  {{ pct }}%
+                </span>
+              </td>
+            </tr>
+          {% endfor %}
+        </table>
+      {% else %}
+        <div class="text-gray-500 text-xs">No disk information.</div>
+      {% endif %}
+    </div>
+
+    <!-- Network Adapters -->
+    <div class="mt-4">
+      <div class="text-xs text-gray-500 mb-2">Network Adapters</div>
+      {% if wmi.adapters and wmi.adapters | length > 0 %}
+        <table class="w-full text-xs border-collapse">
+          <tr class="text-gray-500">
+            <th class="text-left p-1 border-b border-border">Name</th>
+            <th class="text-left p-1 border-b border-border">MAC</th>
+            <th class="text-left p-1 border-b border-border">IPv4</th>
+          </tr>
+
+          {% for nic in wmi.adapters %}
+            <tr class="text-gray-300">
+              <td class="p-1">{{ nic.name }}</td>
+              <td class="p-1">{{ nic.mac }}</td>
+              <td class="p-1">{{ nic.ipv4 }}</td>
+            </tr>
+          {% endfor %}
+        </table>
+      {% else %}
+        <div class="text-gray-500 text-xs">No NIC information.</div>
+      {% endif %}
+    </div>
+
+    <!-- Raw JSON collapsible -->
+    <div class="mt-4">
+      <button
+        onclick="document.getElementById('raw-json-{{ server.id }}').classList.toggle('hidden')"
+        class="text-xs text-blue-400 underline"
+      >
+        Show Raw JSON
+      </button>
+
+      <pre id="raw-json-{{ server.id }}"
+           class="hidden text-xs mt-2 bg-bgpanel border border-border p-2 rounded">
+{{ server.wmi_json }}
+      </pre>
+    </div>
+
+  {% else %}
+
+    <div class="text-gray-500 text-xs">
+      No WMI data collected yet.
+    </div>
+
+  {% endif %}
+</div>

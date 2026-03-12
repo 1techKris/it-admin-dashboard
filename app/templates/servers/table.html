@@ -1,0 +1,26 @@
+<table class="min-w-full bg-white border rounded shadow">
+  <thead class="bg-gray-200">
+    <tr>
+      <th class="p-2 text-left">Hostname</th>
+      <th class="p-2 text-left">IP Address</th>
+      <th class="p-2 text-left">Status</th>
+      <th class="p-2 text-left">Last Seen</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for server in servers %}
+    <tr class="border-b">
+      <td class="p-2">{{ server.hostname }}</td>
+      <td class="p-2">{{ server.ip_address }}</td>
+      <td class="p-2">
+        {% if server.online %}
+          <span class="text-green-600 font-bold">Online</span>
+        {% else %}
+          <span class="text-red-600 font-bold">Offline</span>
+        {% endif %}
+      </td>
+      <td class="p-2">{{ server.last_seen or "-" }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>

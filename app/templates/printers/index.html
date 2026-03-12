@@ -1,0 +1,151 @@
+{% extends "layout.html" %}
+{% block content %}
+
+<h1 class="text-3xl font-bold mb-8">Printers</h1>
+
+{% if printers and printers|length > 0 %}
+  <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
+
+    {% for p in printers %}
+
+      {% set s = p.supplies %}
+      {% set low = (
+          s and (
+            (s.bk is not none and s.bk < 15) or
+            (s.c is not none and s.c < 15) or
+            (s.m is not none and s.m < 15) or
+            (s.y is not none and s.y < 15)
+          )
+      ) %}
+      {% set critical = (
+          s and (
+            (s.bk is not none and s.bk < 5) or
+            (s.c is not none and s.c < 5) or
+            (s.m is not none and s.m < 5) or
+            (s.y is not none and s.y < 5)
+          )
+      ) %}
+
+      <div
+        id="card-{{ p.id }}"
+        class="
+          bg-bgpanel p-5 rounded-lg transition cursor-pointer border
+          {% if critical %}
+            border-red-500 hover:border-red-400 hover:shadow-lg hover:shadow-red-900/30
+          {% elif low %}
+            border-yellow-500 hover:border-yellow-400 hover:shadow-lg hover:shadow-yellow-900/30
+          {% else %}
+            border-border hover:bg-bghover
+          {% endif %}
+        "
+        hx-get="/printers/{{ p.id }}/modal"
+        hx-target="body"
+        hx-swap="beforeend"
+      >
+
+        <!-- HEADER -->
+        <div class="flex justify-between items-center mb-2">
+          <h2 class="text-lg font-semibold">{{ p.name or p.ip_address }}</h2>
+
+          <div class="flex items-center gap-2">
+            {% if p.status %}
+              <span class="text-green-400 text-xs">ONLINE</span>
+            {% else %}
+              <span class="text-red-400 text-xs">OFFLINE</span>
+            {% endif %}
+
+            <!-- REMOVE from monitoring -->
+            <button
+              class="px-2 py-1 rounded text-xs bg-gray-700 hover:bg-gray-600"
+              hx-post="/printers/{{ p.id }}/unmonitor"
+              hx-target="#card-{{ p.id }}"
+              hx-swap="outerHTML"
+              onclick="event.stopPropagation(); if(!confirm('Remove this printer from monitoring?')) return false;"
+            >
+              Remove
+            </button>
+          </div>
+        </div>
+
+        <!-- IP + Model -->
+        <div class="text-sm text-gray-400">IP: {{ p.ip_address }}</div>
+        {% if p.model %}
+          <div class="text-xs text-gray-500 mt-1">Model: {{ p.model }}</div>
+        {% endif %}
+
+        <!-- CMYK Bars -->
+        {% if s %}
+        <div id="card-supplies-{{ p.id }}" class="mt-4 space-y-3">
+
+          {% if s.c is not none %}
+          <div>
+            <div class="flex justify-between text-xs text-cyan-300 mb-1">
+              <span>Cyan</span><span>{{ s.c }}%</span>
+            </div>
+            <div class="h-2 bg-gray-800 rounded overflow-hidden">
+              <div class="h-2 bg-cyan-400" style="width: {{ s.c }}%;"></div>
+            </div>
+          </div>
+          {% endif %}
+
+          {% if s.m is not none %}
+          <div>
+            <div class="flex justify-between text-xs text-pink-300 mb-1">
+              <span>Magenta</span><span>{{ s.m }}%</span>
+            </div>
+            <div class="h-2 bg-gray-800 rounded overflow-hidden">
+              <div class="h-2 bg-pink-400" style="width: {{ s.m }}%;"></div>
+            </div>
+          </div>
+          {% endif %}
+
+          {% if s.y is not none %}
+          <div>
+            <div class="flex justify-between text-xs text-yellow-300 mb-1">
+              <span>Yellow</span><span>{{ s.y }}%</span>
+            </div>
+            <div class="h-2 bg-gray-800 rounded overflow-hidden">
+              <div class="h-2 bg-yellow-400" style="width: {{ s.y }}%;"></div>
+            </div>
+          </div>
+          {% endif %}
+
+          {% if s.bk is not none %}
+          <div>
+            <div class="flex justify-between text-xs text-gray-400 mb-1">
+              <span>Black</span><span>{{ s.bk }}%</span>
+            </div>
+            <div class="h-2 bg-gray-800 rounded overflow-hidden">
+              <div class="h-2 bg-gray-300" style="width: {{ s.bk }}%;"></div>
+            </div>
+          </div>
+          {% endif %}
+
+        </div>
+
+        <!-- REFRESH BUTTON -->
+        <button
+          class="mt-3 px-3 py-1.5 bg-gray-700 hover:bg-gray-600 rounded text-xs text-gray-200"
+          hx-post="/printers/{{ p.id }}/supplies/refresh"
+          hx-target="#card-supplies-{{ p.id }}"
+          hx-swap="outerHTML"
+          onclick="event.stopPropagation()"
+        >
+          Refresh
+        </button>
+
+        {% else %}
+          <div class="mt-4 text-gray-500 text-sm">Supplies not scanned yet</div>
+        {% endif %}
+
+      </div>
+    {% endfor %}
+  </div>
+
+{% else %}
+  <div class="bg-bgpanel border border-border p-5 rounded-lg text-gray-400">
+    No printers found.
+  </div>
+{% endif %}
+
+{% endblock %}

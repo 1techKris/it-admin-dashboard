@@ -1,0 +1,90 @@
+./
+├── .env
+├── README.md
+├── app/
+│   ├── core/
+│   │   ├── auth_ntlm.py
+│   │   ├── config.py
+│   │   ├── database.py
+│   │   ├── passwords.py
+│   │   └── security.py
+│   ├── main.py
+│   ├── modules/
+│   │   ├── active_directory/
+│   │   │   ├── ad_client.py
+│   │   │   ├── ad_service.py
+│   │   │   └── routers.py
+│   │   ├── admin/
+│   │   │   ├── models.py
+│   │   │   └── routers.py
+│   │   ├── dashboard/
+│   │   │   └── routers.py
+│   │   ├── network_scanner/
+│   │   │   ├── models.py
+│   │   │   ├── routers.py
+│   │   │   ├── scanner.py
+│   │   │   └── service.py
+│   │   ├── printers/
+│   │   │   ├── models.py
+│   │   │   ├── routers.py
+│   │   │   ├── service.py
+│   │   │   └── snmp.py
+│   │   ├── servers/
+│   │   │   ├── models.py
+│   │   │   ├── monitor.py
+│   │   │   ├── os_detect.py
+│   │   │   ├── routers.py
+│   │   │   ├── scanner.py
+│   │   │   ├── wmi.py
+│   │   │   └── wmi_utils.py
+│   │   └── settings/
+│   │       └── routers.py
+│   ├── static/
+│   ├── templates/
+│   │   ├── _header.html
+│   │   ├── ad/
+│   │   │   ├── ad.html
+│   │   │   └── index.html
+│   │   ├── admin/
+│   │   │   ├── permissions.html
+│   │   │   ├── settings.html
+│   │   │   └── users.html
+│   │   ├── dashboard/
+│   │   │   ├── _events.html
+│   │   │   ├── _groups.html
+│   │   │   ├── _printers.html
+│   │   │   ├── _scanner.html
+│   │   │   ├── _tiles.html
+│   │   │   └── index.html
+│   │   ├── index.html
+│   │   ├── layout.html
+│   │   ├── login.html
+│   │   ├── network/
+│   │   │   ├── _add_modal.html
+│   │   │   ├── _host_cards.html
+│   │   │   └── scan.html
+│   │   ├── printers/
+│   │   │   ├── _add_modal.html
+│   │   │   ├── _dash_list.html
+│   │   │   ├── _detail_modal.html
+│   │   │   ├── _supplies.html
+│   │   │   └── index.html
+│   │   └── servers/
+│   │       ├── _add_modal.html
+│   │       ├── _cards.html
+│   │       ├── _detail_modal.html
+│   │       ├── _edit_modal.html
+│   │       ├── _wmi_summary.html
+│   │       ├── admin/
+│   │       ├── detail.html
+│   │       ├── index.html
+│   │       └── table.html
+│   └── utils/
+│       ├── logging.py
+│       └── network.py
+├── app.db
+├── app_tree.txt
+├── requirements.txt
+└── test.db
+
+21 directories, 67 files

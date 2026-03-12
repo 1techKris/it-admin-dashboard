@@ -1,0 +1,54 @@
+<div id="modal-supplies-{{ printer.id }}" class="space-y-4">
+
+  {% set s = printer.supplies %}
+
+  {% if not s %}
+    <div class="text-gray-500 text-sm">Supplies: N/A</div>
+  {% else %}
+
+    {% if s.c is not none %}
+    <div>
+      <div class="flex justify-between text-xs text-cyan-300 mb-1">
+        <span>Cyan</span><span>{{ s.c }}%</span>
+      </div>
+      <div class="h-2 bg-gray-800 rounded">
+        <div class="h-full bg-cyan-400" style="width: {{ s.c }}%"></div>
+      </div>
+    </div>
+    {% endif %}
+
+    {% if s.m is not none %}
+    <div>
+      <div class="flex justify-between text-xs text-pink-300 mb-1">
+        <span>Magenta</span><span>{{ s.m }}%</span>
+      </div>
+      <div class="h-2 bg-gray-800 rounded">
+        <div class="h-full bg-pink-400" style="width: {{ s.m }}%"></div>
+      </div>
+    </div>
+    {% endif %}
+
+    {% if s.y is not none %}
+    <div>
+      <div class="flex justify-between text-xs text-yellow-300 mb-1">
+        <span>Yellow</span><span>{{ s.y }}%</span>
+      </div>
+      <div class="h-2 bg-gray-800 rounded">
+        <div class="h-full bg-yellow-400" style="width: {{ s.y }}%"></div>
+      </div>
+    </div>
+    {% endif %}
+
+    {% if s.bk is not none %}
+    <div>
+      <div class="flex justify-between text-xs text-gray-400 mb-1">
+        <span>Black</span><span>{{ s.bk }}%</span>
+      </div>
+      <div class="h-2 bg-gray-800 rounded">
+        <div class="h-full bg-gray-300" style="width: {{ s.bk }}%"></div>
+      </div>
+    </div>
+    {% endif %}
+
+  {% endif %}
+</div>

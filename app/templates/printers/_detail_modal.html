@@ -1,0 +1,83 @@
+<!-- Backdrop -->
+<div class="fixed inset-0 bg-black/60 z-40"
+     onclick="document.getElementById('printer-detail-modal')?.remove(); this.remove()"></div>
+
+<!-- Modal -->
+<div id="printer-detail-modal"
+     class="fixed inset-0 ml-64 z-50 flex items-center justify-center p-4">
+
+  <div class="bg-bgpanel border border-border rounded-lg w-full max-w-3xl shadow-xl">
+
+    <div class="flex justify-between items-center p-4 border-b border-border">
+      <h2 class="text-xl font-semibold">
+        {{ printer.name or printer.ip_address }}
+        <span class="text-gray-400 text-sm">({{ printer.ip_address }})</span>
+      </h2>
+
+      <button
+        class="px-3 py-1 bg-gray-700 hover:bg-gray-600 rounded"
+        onclick="
+          document.querySelector('.bg-black\\/60')?.remove();
+          document.getElementById('printer-detail-modal')?.remove();
+        "
+      >
+        Close
+      </button>
+    </div>
+
+    <div class="p-4 max-h-[75vh] overflow-y-auto space-y-6">
+
+      <div class="bg-bgpanel border border-border p-4 rounded">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <div class="text-gray-400 text-sm">Model</div>
+            <div class="font-semibold text-lg">{{ printer.model or "Unknown" }}</div>
+          </div>
+          <div>
+            <div class="text-gray-400 text-sm">Status</div>
+            {% if printer.status %}
+              <div class="text-green-400">Online</div>
+            {% else %}
+              <div class="text-red-400">Offline</div>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+
+      <div class="bg-bgpanel border border-border p-4 rounded">
+        <div class="flex justify-between mb-3">
+          <h3 class="text-lg font-semibold">Supplies</h3>
+
+          <button
+            class="px-3 py-1 bg-blue-600 hover:bg-blue-700 rounded text-white text-sm"
+            hx-post="/printers/{{ printer.id }}/supplies/refresh"
+            hx-target="#modal-supplies-{{ printer.id }}"
+            hx-swap="outerHTML"
+          >
+            Refresh
+          </button>
+        </div>
+
+        <div id="modal-supplies-{{ printer.id }}"
+             hx-get="/printers/{{ printer.id }}/supplies"
+             hx-trigger="load">
+          <div class="text-sm text-gray-500">Loading…</div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script>
+  (function () {
+    const onKey = (e) => {
+      if (e.key === "Escape") {
+        document.querySelector('.bg-black\\/60')?.remove();
+        document.getElementById('printer-detail-modal')?.remove();
+        document.removeEventListener('keydown', onKey);
+      }
+    };
+    document.addEventListener('keydown', onKey, { once: true });
+  })();
+</script>

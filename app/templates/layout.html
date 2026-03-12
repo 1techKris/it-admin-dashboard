@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html class="dark" lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <title>{{ title or "IT Admin Dashboard" }}</title>
+
+    <!-- HTMX -->
+    <script src="https://unpkg.com/htmx.org@1.9.11"></script>
+
+    <!-- Alpine.js (for collapsible groups + theme toggle) -->
+    <script src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
+
+    <!-- Tailwind -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- Tailwind Config -->
+    <script>
+      tailwind.config = {
+        darkMode: 'class',
+        theme: {
+          extend: {
+            colors: {
+              bgmain: '#0f1115',
+              bgpanel: '#1a1d23',
+              bghover: '#23262d',
+              border: '#2c2f36',
+            }
+          }
+        }
+      }
+    </script>
+
+    <style>
+      body { font-family: Inter, system-ui, sans-serif; }
+    </style>
+</head>
+
+<body 
+    x-data="{ 
+      dark: localStorage.getItem('theme') === 'dark' 
+    }"
+    :class="{ 'dark': dark }"
+    class="bg-bgmain text-gray-200 flex"
+>
+
+    <!-- SIDEBAR -->
+    <aside class="w-64 bg-bgpanel h-screen fixed left-0 top-0 flex flex-col border-r border-border">
+
+        <!-- Title -->
+        <div class="px-6 py-5 text-xl font-bold tracking-tight flex items-center gap-2">
+            <svg class="w-6 h-6 text-blue-400" fill="none" stroke="currentColor" stroke-width="1.5"
+                 viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round"
+                      d="M3 13.5l9 6 9-6M3 6l9 6 9-6"/>
+            </svg>
+            IT Admin Dashboard
+        </div>
+
+        <!-- NAV -->
+        <nav class="flex-1 overflow-y-auto space-y-1 px-4 text-sm">
+
+            <!-- Dashboard -->
+            <a href="/" 
+               class="flex items-center gap-3 px-3 py-2 rounded hover:bg-bghover
+                      {% if active=='dashboard' %}bg-bghover/60 border-l-4 border-blue-500{% endif %}">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.5"
+                     viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round"
+                          d="M3 12l9-9 9 9M4.5 10.5V21h15V10.5"/>
+                </svg>
+                Dashboard
+            </a>
+
+            <!-- Servers -->
+            <a href="/servers/"
+               class="flex items-center gap-3 px-3 py-2 rounded hover:bg-bghover
+                      {% if active=='servers' %}bg-bghover/60 border-l-4 border-blue-500{% endif %}">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.5"
+                     viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round"
+                          d="M3 7h18M3 12h18M3 17h18"/>
+                </svg>
+                Servers
+            </a>
+
+            <!-- Printers -->
+            <a href="/printers/"
+               class="flex items-center gap-3 px-3 py-2 rounded hover:bg-bghover
+                      {% if active=='printers' %}bg-bghover/60 border-l-4 border-blue-500{% endif %}">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.5"
+                     viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round"
+                          d="M6 9V2h12v7m-12 5h12m-12 4h12m-2-9H8"/>
+                </svg>
+                Printers
+            </a>
+
+            <!-- AD -->
+            <a href="/ad/"
+               class="flex items-center gap-3 px-3 py-2 rounded hover:bg-bghover
+                      {% if active=='ad' %}bg-bghover/60 border-l-4 border-blue-500{% endif %}">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.5"
+                     viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round"
+                          d="M17 20h5V4h-5M2 20h5V10H2zM9 20h6V4H9"/>
+                </svg>
+                Active Directory
+            </a>
+
+            <!-- Network -->
+            <a href="/network/scan"
+               class="flex items-center gap-3 px-3 py-2 rounded hover:bg-bghover
+                      {% if active=='network' %}bg-bghover/60 border-l-4 border-blue-500{% endif %}">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.5"
+                     viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round"
+                          d="M12 20a8 8 0 100-16 8 8 0 000 16zm0 0v-4m0-8V4m4 4h4m-12 0H4"/>
+                </svg>
+                Network Scanner
+            </a>
+
+            <!-- Alerts -->
+            <a href="/alerts"
+               class="flex items-center gap-3 px-3 py-2 rounded hover:bg-bghover
+                      {% if active=='alerts' %}bg-bghover/60 border-l-4 border-blue-500{% endif %}">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.5"
+                     viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round"
+                          d="M12 22c1.1 0 2-.9 2-2H10c0 1.1.9 2 2 2zm6-6V9a6 6 0 10-12 0v7l-2 2h16l-2-2z"/>
+                </svg>
+                Alerts
+            </a>
+
+            <!-- ADMIN SECTION -->
+            {% if role == "admin" %}
+            <div class="mt-6 text-xs uppercase text-gray-400 px-3">Admin</div>
+
+            <div x-data="{ open: true }">
+
+                <!-- Collapsible group -->
+                <button @click="open = !open"
+                        class="flex items-center justify-between w-full px-3 py-2 hover:bg-bghover rounded">
+                    <span class="flex items-center gap-3">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.5"
+                             viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round"
+                                  d="M12 4v16m8-8H4"/>
+                        </svg>
+                        Admin Panel
+                    </span>
+                    <svg class="w-4 h-4 transition-transform"
+                         :class="{ 'rotate-90': open }"
+                         fill="none" stroke="currentColor" stroke-width="1.5"
+                         viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round"
+                              d="M9 5l7 7-7 7"/>
+                    </svg>
+                </button>
+
+                <div x-show="open" x-collapse class="ml-6 space-y-1">
+
+                    <a href="/servers/admin/settings"
+                       class="flex items-center gap-3 px-3 py-2 rounded hover:bg-bghover
+                              {% if active=='settings' %}bg-bghover/60 border-l-4 border-blue-500{% endif %}">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.5"
+                             viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round"
+                                  d="M12 8c-2.21 0-4 1.79-4 4s1.79 4 4 4m0-8c2.21 0 4 1.79 4 4s-1.79 4-4 4m-7 4h14"/>
+                        </svg>
+                        Settings
+                    </a>
+
+                    <a href="/admin/users"
+                       class="flex items-center gap-3 px-3 py-2 rounded hover:bg-bghover">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.5"
+                             viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round"
+                                  d="M5.5 20a4.5 4.5 0 119 0h-9zm4.5-7a4.5 4.5 0 100-9 4.5 4.5 0 000 9z"/>
+                        </svg>
+                        Users
+                    </a>
+
+                    <a href="/admin/permissions"
+                       class="flex items-center gap-3 px-3 py-2 rounded hover:bg-bghover">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.5"
+                             viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round"
+                                  d="M16.5 9V5.25m0 0L12.75 9m3.75-3.75l3.75 3.75M7.5 15v3.75m0 0L11.25 15M7.5 18.75L3.75 15"/>
+                        </svg>
+                        Permissions
+                    </a>
+
+                </div>
+            </div>
+            {% endif %}
+
+        </nav>
+
+        <!-- FOOTER -->
+        <div class="px-4 py-4 border-t border-border text-sm space-y-3">
+
+            <!-- User -->
+            <div class="text-gray-400">
+                Logged in as <span class="text-gray-100">{{ user }}</span>
+                {% if role %} ({{ role }}){% endif %}
+            </div>
+
+            <!-- Theme Toggle -->
+            <button
+              @click="dark = !dark; localStorage.setItem('theme', dark ? 'dark' : 'light')"
+              class="w-full px-3 py-1.5 bg-gray-700 hover:bg-gray-600 rounded text-xs text-gray-200 text-center">
+              Toggle Theme
+            </button>
+
+            <!-- Version -->
+            <div class="text-xs text-gray-500">
+                v1.0.0 • Build 2026‑03‑10
+            </div>
+
+            <!-- Logout -->
+            <a href="/logout" class="block text-red-400 hover:text-red-300 text-sm">
+              Logout
+            </a>
+        </div>
+
+    </aside>
+
+    <!-- MAIN -->
+    <main class="flex-1 ml-64 p-8">
+        {% block content %}{% endblock %}
+    </main>
+
+</body>
+</html>

@@ -1,0 +1,225 @@
+<!-- ======================= -->
+<!-- WMI SYSTEM INFORMATION  -->
+<!-- ======================= -->
+<div id="wmi-{{ server.id }}"
+     hx-get="/servers/{{ server.id }}/wmi/summary"
+     hx-trigger="load, every 10s"
+     class="bg-bgpanel border border-border p-5 rounded-lg mb-6">
+
+  <div class="text-lg font-semibold mb-3">System Information</div>
+
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+
+    <!-- OS -->
+    <div>
+      <div class="text-gray-500 text-xs">Operating System</div>
+      <div class="text-gray-300">
+        {% if server.os_caption %}
+          {{ server.os_caption }}
+          {% if server.os_version %} ({{ server.os_version }}){% endif %}
+        {% else %}
+          <span class="text-gray-500">N/A</span>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- Uptime -->
+    <div>
+      <div class="text-gray-500 text-xs">Uptime</div>
+      <div class="text-gray-300">
+        {% if server.uptime_days is not none %}
+          {{ server.uptime_days }} days
+        {% else %}
+          <span class="text-gray-500">N/A</span>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- CPU -->
+    <div>
+      <div class="text-gray-500 text-xs">CPU</div>
+      <div class="text-gray-300">
+        {% if server.cpu_name %}
+          {{ server.cpu_name }}
+        {% else %}
+          <span class="text-gray-500">N/A</span>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- RAM -->
+    <div>
+      <div class="text-gray-500 text-xs">RAM</div>
+      <div class="text-gray-300">
+        {% if server.total_ram_gb %}
+          {{ server.total_ram_gb }} GB
+        {% else %}
+          <span class="text-gray-500">N/A</span>
+        {% endif %}
+      </div>
+    </div>
+
+  </div>
+
+  <div class="text-xs text-gray-500 mt-3">
+    {% if server.last_wmi_at %}
+      WMI updated: {{ server.last_wmi_at }}
+    {% else %}
+      WMI not yet collected
+    {% endif %}
+  </div>
+</div>
+
+
+
+<!-- ======================= -->
+<!-- OVERVIEW CARDS          -->
+<!-- ======================= -->
+<div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+
+  <!-- Status -->
+  <div class="bg-bgpanel border border-border p-5 rounded-lg">
+    <div class="text-gray-400 text-sm mb-1">Status</div>
+    {% if server.online %}
+      <div class="text-2xl font-bold text-green-400">ONLINE</div>
+    {% else %}
+      <div class="text-2xl font-bold text-red-400">OFFLINE</div>
+    {% endif %}
+    {% if server.last_seen %}
+      <div class="text-xs text-gray-500 mt-2">Last seen: {{ server.last_seen }}</div>
+    {% endif %}
+  </div>
+
+  <!-- Latest Ping -->
+  <div class="bg-bgpanel border border-border p-5 rounded-lg">
+    <div class="text-gray-400 text-sm mb-1">Latest Ping</div>
+    <div class="text-2xl font-bold">
+      {{ latest_ping if latest_ping is not none else "—" }}
+      {% if latest_ping is not none %}<span class="text-gray-400 text-base">ms</span>{% endif %}
+    </div>
+  </div>
+
+  <!-- Uptime -->
+  <div class="bg-bgpanel border border-border p-5 rounded-lg">
+    <div class="text-gray-400 text-sm mb-1">Uptime (1h)</div>
+    <div class="text-2xl font-bold">
+      {{ uptime_pct if uptime_pct is not none else "—" }}
+      {% if uptime_pct is not none %}<span class="text-gray-400 text-base">%</span>{% endif %}
+    </div>
+  </div>
+
+</div>
+
+
+
+<!-- ======================= -->
+<!-- METRICS CHART           -->
+<!-- ======================= -->
+<div class="bg-bgpanel border border-border p-5 rounded-lg mb-6">
+  <div class="text-lg font-semibold mb-3">Metrics (CPU / RAM / Disk)</div>
+  <canvas id="metrics-chart" height="120"></canvas>
+</div>
+
+<script>
+  (async function () {
+    const res = await fetch(`/servers/{{ server.id }}/metrics.json?limit=50`, {
+      headers: { "HX-Request": "true" }
+    });
+    const data = await res.json();
+
+    const labels = data.ts.map(t => new Date(t).toLocaleTimeString());
+
+    if (!window.Chart) {
+      const s = document.createElement("script");
+      s.src = "https://cdn.jsdelivr.net/npm/chart.js";
+      document.head.appendChild(s);
+      await new Promise(r => s.onload = r);
+    }
+
+    const ctx = document.getElementById("metrics-chart").getContext("2d");
+    const datasets = [];
+
+    if (data.cpu.some(v => v !== null)) {
+      datasets.push({
+        label: "CPU %",
+        data: data.cpu,
+        borderColor: "#60a5fa",
+        backgroundColor: "rgba(96,165,250,0.15)",
+        tension: 0.3
+      });
+    }
+
+    if (data.ram.some(v => v !== null)) {
+      datasets.push({
+        label: "RAM %",
+        data: data.ram,
+        borderColor: "#34d399",
+        backgroundColor: "rgba(52,211,153,0.15)",
+        tension: 0.3
+      });
+    }
+
+    if (data.disk.some(v => v !== null)) {
+      datasets.push({
+        label: "Disk %",
+        data: data.disk,
+        borderColor: "#fbbf24",
+        backgroundColor: "rgba(251,191,36,0.15)",
+        tension: 0.3
+      });
+    }
+
+    if (datasets.length) {
+      new Chart(ctx, {
+        type: "line",
+        data: { labels, datasets },
+        options: {
+          plugins: { legend: { labels: { color: "#e5e7eb" } } },
+          scales: {
+            x: { ticks: { color: "#9ca3af" } },
+            y: { ticks: { color: "#9ca3af" }, suggestedMin: 0, suggestedMax: 100 }
+          }
+        }
+      });
+    }
+
+  })();
+</script>
+
+
+
+<!-- ======================= -->
+<!-- RECENT CHECKS           -->
+<!-- ======================= -->
+<div class="bg-bgpanel border border-border p-5 rounded-lg">
+  <div class="text-lg font-semibold mb-3">Recent Checks</div>
+
+  <div class="overflow-auto max-h-64">
+    <table class="min-w-full text-sm">
+      <thead class="text-gray-400">
+        <tr>
+          <th class="text-left p-2">Time (UTC)</th>
+          <th class="text-left p-2">Status</th>
+          <th class="text-left p-2">Ping</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for r in history %}
+        <tr class="border-t border-border">
+          <td class="p-2 whitespace-nowrap">{{ r.ts }}</td>
+          <td class="p-2">
+            {% if r.online %}
+              <span class="text-green-400">Online</span>
+            {% else %}
+              <span class="text-red-400">Offline</span>
+            {% endif %}
+          </td>
+          <td class="p-2">
+            {{ r.ping_ms if r.ping_ms is not none else "—" }}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>

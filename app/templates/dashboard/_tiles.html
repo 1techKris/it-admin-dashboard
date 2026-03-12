@@ -1,0 +1,20 @@
+<div class="bg-bgpanel border border-border p-5 rounded-lg">
+  <div class="text-gray-400 text-sm">Total Servers</div>
+  <div class="text-3xl font-bold">{{ total_servers }}</div>
+</div>
+
+<div class="bg-bgpanel border border-border p-5 rounded-lg">
+  <div class="text-gray-400 text-sm">Online</div>
+  <div class="text-3xl font-bold text-green-400">{{ online_servers }}</div>
+</div>
+
+<div class="bg-bgpanel border border-border p-5 rounded-lg">
+  <div class="text-gray-400 text-sm">Offline</div>
+  <div class="text-3xl font-bold text-red-400">{{ offline_servers }}</div>
+</div>
+
+<div class="bg-bgpanel border border-border p-5 rounded-lg">
+  <div class="text-gray-400 text-sm">Monitored Hosts</div>
+  <div class="text-3xl font-bold">{{ monitored_hosts }}</div>
+  <div class="text-gray-500 text-xs mt-1">Discovered: {{ scanned_hosts }} · Printers: {{ printer_count }}</div>
+</div>

@@ -1,0 +1,71 @@
+{% extends "layout.html" %}
+{% block content %}
+
+<h1 class="text-3xl font-bold mb-8">Dashboard</h1>
+
+<!-- Top tiles -->
+<div id="dash-tiles"
+     hx-get="/tiles"
+     hx-trigger="load, every 15s"
+     class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
+  <!-- Filled by HTMX -->
+</div>
+
+<!-- Two columns of widgets -->
+<div class="grid grid-cols-1 xl:grid-cols-2 gap-6 mt-6">
+
+  <!-- Recent events -->
+  <div class="bg-bgpanel border border-border p-5 rounded-lg">
+    <div class="flex justify-between items-center mb-4">
+      <h2 class="text-xl font-semibold">Recent Server Events (1h)</h2>
+      <span class="text-xs text-gray-400">Auto-refreshing</span>
+    </div>
+    <div id="dash-events"
+         hx-get="/events"
+         hx-trigger="load, every 15s">
+      <!-- Filled by HTMX -->
+    </div>
+  </div>
+
+  <!-- Groups -->
+  <div class="bg-bgpanel border border-border p-5 rounded-lg">
+    <div class="flex justify-between items-center mb-4">
+      <h2 class="text-xl font-semibold">Server Groups</h2>
+    </div>
+    <div id="dash-groups"
+         hx-get="/groups"
+         hx-trigger="load, every 60s">
+      <!-- Filled by HTMX -->
+    </div>
+  </div>
+
+  <!-- Printers -->
+  <div class="bg-bgpanel border border-border p-5 rounded-lg">
+
+<div class="flex justify-between items-center mb-4">
+  <h2 class="text-xl font-semibold">Printers</h2>
+  <a href="/printers/" class="text-xs text-gray-400 hover:text-gray-200">View all</a>
+</div>
+
+<div id="dash-printers"
+     hx-get="/printers/widget"
+     hx-trigger="load, every 30s">
+  <!-- Filled by HTMX -->
+</div>
+  </div>
+
+  <!-- Scanner summary -->
+  <div class="bg-bgpanel border border-border p-5 rounded-lg">
+    <div class="flex justify-between items-center mb-4">
+      <h2 class="text-xl font-semibold">Network Scanner</h2>
+    </div>
+    <div id="dash-scanner"
+         hx-get="/scanner"
+         hx-trigger="load, every 30s">
+      <!-- Filled by HTMX -->
+    </div>
+  </div>
+
+</div>
+
+{% endblock %}

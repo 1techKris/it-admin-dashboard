@@ -1,0 +1,67 @@
+{% extends "layout.html" %}
+{% block content %}
+
+<h1 class="text-3xl font-bold mb-8">Settings</h1>
+
+<div class="bg-bgpanel border border-border p-6 rounded-lg w-full max-w-xl space-y-6">
+
+  <h2 class="text-xl font-semibold mb-4">Global WMI Credentials</h2>
+
+	<form hx-post="/servers/admin/settings/wmi" hx-target="#save-msg">
+
+    <label class="block text-sm text-gray-400 mb-1">Username</label>
+    <input type="text" name="username" value="{{ wmi_username or '' }}"
+           class="w-full p-2 bg-bghover border border-border rounded">
+
+    <label class="block text-sm text-gray-400 mt-4 mb-1">Password</label>
+    <input type="password" name="password" value="{{ wmi_password or '' }}"
+           class="w-full p-2 bg-bghover border border-border rounded">
+
+    <button class="mt-4 bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded">
+      Save Settings
+    </button>
+  </form>
+
+  <div id="save-msg" class="text-sm mt-3"></div>
+<!-- ACTIVE DIRECTORY SETTINGS -->
+<h2 class="text-xl font-semibold mt-10 mb-4">Active Directory Settings</h2>
+
+<form hx-post="/admin/settings/ad" hx-target="#save-msg-ad">
+
+    <label class="block text-sm text-gray-400 mb-1">Domain Name</label>
+    <input type="text" name="ad_domain" value="{{ ad_domain or '' }}"
+           class="w-full p-2 bg-bghover border border-border rounded">
+
+    <label class="block text-sm text-gray-400 mt-4 mb-1">Domain Controller Hostname</label>
+    <input type="text" name="ad_dc_host" value="{{ ad_dc_host or '' }}"
+           class="w-full p-2 bg-bghover border border-border rounded">
+
+    <label class="block text-sm text-gray-400 mt-4 mb-1">Domain Controller IP (optional)</label>
+    <input type="text" name="ad_dc_ip" value="{{ ad_dc_ip or '' }}"
+           class="w-full p-2 bg-bghover border border-border rounded">
+
+    <label class="block text-sm text-gray-400 mt-4 mb-1">Base DN</label>
+    <input type="text" name="ad_base_dn" value="{{ ad_base_dn or '' }}"
+           class="w-full p-2 bg-bghover border border-border rounded">
+
+    <label class="block text-sm text-gray-400 mt-4 mb-1">Default New User OU</label>
+    <input type="text" name="ad_default_user_ou" value="{{ ad_default_user_ou or '' }}"
+           class="w-full p-2 bg-bghover border border-border rounded">
+
+    <label class="block text-sm text-gray-400 mt-4 mb-1">Service Account Username</label>
+    <input type="text" name="ad_username" value="{{ ad_username or '' }}"
+           class="w-full p-2 bg-bghover border border-border rounded">
+
+    <label class="block text-sm text-gray-400 mt-4 mb-1">Service Account Password</label>
+    <input type="password" name="ad_password" value="{{ ad_password or '' }}"
+           class="w-full p-2 bg-bghover border border-border rounded">
+
+    <button class="mt-4 bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded">
+        Save AD Settings
+    </button>
+</form>
+
+<div id="save-msg-ad" class="text-sm mt-3"></div>
+</div>
+
+{% endblock %}

@@ -1,0 +1,53 @@
+<!-- Backdrop -->
+<div class="fixed inset-0 bg-black/60 z-40"
+     hx-on="click: this.remove(); document.querySelector('#add-printer-modal')?.remove()">
+</div>
+
+<!-- Modal -->
+<div id="add-printer-modal"
+     class="fixed inset-0 z-50 flex items-center justify-center p-4">
+  <div class="bg-bgpanel border border-border rounded-lg w-full max-w-md p-6"
+       hx-on="click: event.stopPropagation()">
+
+    <h3 class="text-xl font-semibold mb-4">Add Printer</h3>
+
+    <form
+      hx-post="/printers/add"
+      hx-target="body"
+      hx-swap="none"
+      hx-encoding="multipart/form-data">
+
+      <div class="mb-3">
+        <label class="block text-sm text-gray-400 mb-1">Name</label>
+        <input name="name" required class="w-full bg-bghover border border-border rounded px-3 py-2">
+      </div>
+
+      <div class="mb-3">
+        <label class="block text-sm text-gray-400 mb-1">IP Address</label>
+        <input name="ip_address" required class="w-full bg-bghover border border-border rounded px-3 py-2">
+      </div>
+
+      <div class="mb-6">
+        <label class="block text-sm text-gray-400 mb-1">Model</label>
+        <input name="model" value="Unknown" class="w-full bg-bghover border border-border rounded px-3 py-2">
+      </div>
+
+      <div class="flex justify-end gap-2">
+        <button type="button"
+                class="px-3 py-1 rounded bg-gray-700"
+                onclick="
+                  document.querySelector('#add-printer-modal')?.remove();
+                  document.querySelector('.bg-black\\/60')?.remove();
+                ">
+          Cancel
+        </button>
+
+        <button type="submit"
+                class="px-3 py-1 rounded bg-blue-600 hover:bg-blue-700">
+          Add
+        </button>
+      </div>
+
+    </form>
+  </div>
+</div>

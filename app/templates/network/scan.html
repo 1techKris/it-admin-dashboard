@@ -1,0 +1,57 @@
+{% extends "layout.html" %}
+{% block content %}
+
+<h1 class="text-3xl font-bold mb-8">Network Scanner</h1>
+
+<div class="bg-bgpanel border border-border p-5 rounded-lg mb-6">
+  <form 
+    hx-get="/network/scan/run"
+    hx-target="#scan-results"
+    hx-indicator="#loading"
+    class="grid grid-cols-1 md:grid-cols-3 gap-4 items-end"
+  >
+    <div>
+      <label class="block text-sm text-gray-400 mb-1">CIDR Range</label>
+      <input name="range" type="text" placeholder="e.g. {{ suggested }}" class="w-full bg-bghover border border-border rounded px-3 py-2" />
+    </div>
+
+    <div>
+      <label class="block text-sm text-gray-400 mb-1">Saved Profile</label>
+      <select name="profile_id" class="w-full bg-bghover border border-border rounded px-3 py-2">
+        <option value="">-- None --</option>
+        {% for p in profiles %}
+          <option value="{{ p.id }}">{{ p.name }} ({{ p.cidr }})</option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <div>
+      <label class="block text-sm text-gray-400 mb-1">SNMP Community (optional)</label>
+      <input name="community" type="text" value="public" class="w-full bg-bghover border border-border rounded px-3 py-2" />
+    </div>
+
+    <div class="md:col-span-3">
+      <button class="bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded">Start Scan</button>
+      <span id="loading" class="hidden text-gray-400 ml-3">Scanning…</span>
+    </div>
+  </form>
+</div>
+
+<!-- Save profile (admin only) -->
+{% if role == "admin" %}
+<div class="bg-bgpanel border border-border p-5 rounded-lg mb-6">
+  <h3 class="text-lg font-semibold mb-3">Save a Subnet Profile</h3>
+  <form hx-post="/network/scan/profile/save" hx-swap="none" class="grid grid-cols-1 md:grid-cols-3 gap-4">
+    <input name="name" placeholder="Profile name (e.g. Office LAN)" class="bg-bghover border border-border rounded px-3 py-2"/>
+    <input name="cidr" placeholder="CIDR (e.g. 192.168.125.0/24)" class="bg-bghover border border-border rounded px-3 py-2"/>
+    <input name="notes" placeholder="Notes (optional)" class="bg-bghover border border-border rounded px-3 py-2"/>
+    <div class="md:col-span-3">
+      <button class="bg-emerald-600 hover:bg-emerald-700 px-4 py-2 rounded">Save Profile</button>
+    </div>
+  </form>
+</div>
+{% endif %}
+
+<div id="scan-results" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6"></div>
+
+{% endblock %}

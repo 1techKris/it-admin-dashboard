@@ -1,0 +1,37 @@
+<div class="bg-white shadow px-6 py-3 mb-6">
+  <div class="max-w-7xl mx-auto flex justify-between items-center">
+
+    <!-- Branding -->
+    <div class="font-bold text-xl tracking-tight">
+      IT Admin Dashboard
+    </div>
+
+    <!-- Navigation -->
+    <nav class="flex items-center gap-6 text-sm">
+
+      <!-- Always visible -->
+      <a href="/" class="hover:underline">Home</a>
+      <a href="/servers/" class="hover:underline">Servers</a>
+      <a href="/printers/" class="hover:underline">Printers</a>
+      <a href="/ad/" class="hover:underline">Active Directory</a>
+
+      <!-- Admin-only -->
+      {% if role == "admin" %}
+        <a href="/admin/users" class="hover:underline">Users</a>
+        <a href="/admin/permissions" class="hover:underline">Permissions</a>
+      {% endif %}
+
+      <!-- Right side -->
+      {% if user %}
+        <span class="text-gray-500">
+          Logged in as <strong class="text-gray-700">{{ user }}</strong>
+          {% if role %} ({{ role }}){% endif %}
+        </span>
+        <a href="/logout" class="hover:underline text-red-600 font-semibold">Logout</a>
+      {% else %}
+        <a href="/login" class="hover:underline">Login</a>
+      {% endif %}
+
+    </nav>
+  </div>
+</div>

@@ -1,0 +1,15 @@
+{% extends "layout.html" %}
+{% block content %}
+
+<h1 class="text-3xl font-bold mb-8">
+  {{ server.hostname }} <span class="text-gray-400 text-xl">({{ server.ip_address }})</span>
+</h1>
+
+<div id="server-cards"
+     hx-get="/servers/{{ server.id }}/cards"
+     hx-trigger="load, every 10s"
+     class="space-y-6">
+  <!-- Cards load here via HTMX -->
+</div>
+
+{% endblock %}

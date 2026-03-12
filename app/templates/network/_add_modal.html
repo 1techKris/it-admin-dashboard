@@ -1,0 +1,32 @@
+<!-- Simple modal overlay -->
+<div class="fixed inset-0 bg-black/60 z-40" hx-on="click: this.remove()"></div>
+
+<div class="fixed inset-0 z-50 flex items-center justify-center">
+  <div class="bg-bgpanel border border-border rounded-lg w-full max-w-md p-6" hx-on="click: event.stopPropagation()">
+    <h3 class="text-xl font-semibold mb-4">Add {{ host.ip }} to Monitoring</h3>
+
+    <form hx-post="/network/scan/add" hx-swap="none" onsubmit="this.closest('.z-50').remove(); document.querySelector('.bg-black\\/60')?.remove();">
+
+      <div class="mb-4">
+        <label class="block text-sm text-gray-400 mb-1">Host Type</label>
+        <select name="host_type" class="w-full bg-bghover border border-border rounded px-3 py-2">
+          <option value="server" {% if host.host_type == 'server' %}selected{% endif %}>Server</option>
+          <option value="printer" {% if host.host_type == 'printer' %}selected{% endif %}>Printer</option>
+          <option value="unknown" {% if host.host_type == 'unknown' %}selected{% endif %}>Unknown</option>
+        </select>
+      </div>
+
+      <div class="mb-4">
+        <label class="block text-sm text-gray-400 mb-1">Display Name</label>
+        <input name="hostname" value="{{ host.hostname or host.ip }}" class="w-full bg-bghover border border-border rounded px-3 py-2"/>
+      </div>
+
+      <input type="hidden" name="ip" value="{{ host.ip }}" />
+
+      <div class="flex justify-end gap-2">
+        <button type="button" class="px-3 py-1 rounded bg-gray-700" onclick="this.closest('.z-50').remove(); document.querySelector('.bg-black\\/60')?.remove();">Cancel</button>
+        <button class="px-3 py-1 rounded bg-blue-600 hover:bg-blue-700">Add</button>
+      </div>
+    </form>
+  </div>
+</div>

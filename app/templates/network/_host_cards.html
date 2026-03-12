@@ -1,0 +1,66 @@
+{% for host in hosts %}
+<div class="bg-bgpanel border border-border p-5 rounded-lg">
+
+  <div class="flex justify-between items-center mb-3">
+    <h2 class="text-lg font-semibold">{{ host.ip }}</h2>
+    <span class="text-xs text-green-400">Online</span>
+  </div>
+
+  <div class="text-gray-300 text-sm mb-1">{{ host.hostname or "Unknown host" }}</div>
+  {% if host.vendor %}
+    <div class="text-gray-400 text-xs mb-2">Vendor: {{ host.vendor }}</div>
+  {% endif %}
+  {% if host.os_guess %}
+    <div class="text-gray-400 text-xs mb-3">OS: {{ host.os_guess }}</div>
+  {% endif %}
+
+  {% if host.open_ports %}
+    <div class="flex flex-wrap gap-2 mb-4">
+      {% for p in host.open_ports.split(",") %}
+        {% set port = p|int %}
+        {% if port == 22 %}
+          <span class="px-2 py-0.5 rounded bg-blue-900/40 text-blue-300 text-xs">SSH :22</span>
+        {% elif port == 80 %}
+          <span class="px-2 py-0.5 rounded bg-emerald-900/40 text-emerald-300 text-xs">HTTP :80</span>
+        {% elif port == 443 %}
+          <span class="px-2 py-0.5 rounded bg-emerald-900/40 text-emerald-300 text-xs">HTTPS :443</span>
+        {% elif port == 3389 %}
+          <span class="px-2 py-0.5 rounded bg-purple-900/40 text-purple-300 text-xs">RDP :3389</span>
+        {% elif port == 445 %}
+          <span class="px-2 py-0.5 rounded bg-pink-900/40 text-pink-300 text-xs">SMB :445</span>
+        {% elif port == 139 %}
+          <span class="px-2 py-0.5 rounded bg-pink-900/40 text-pink-300 text-xs">NetBIOS :139</span>
+        {% elif port == 9100 %}
+          <span class="px-2 py-0.5 rounded bg-amber-900/40 text-amber-300 text-xs">JetDirect :9100</span>
+        {% elif port == 515 %}
+          <span class="px-2 py-0.5 rounded bg-amber-900/40 text-amber-300 text-xs">LPD :515</span>
+        {% elif port == 161 %}
+          <span class="px-2 py-0.5 rounded bg-amber-900/40 text-amber-300 text-xs">SNMP :161</span>
+        {% else %}
+          <span class="px-2 py-0.5 rounded bg-gray-700 text-gray-200 text-xs">:{{ port }}</span>
+        {% endif %}
+      {% endfor %}
+    </div>
+  {% endif %}
+
+  <div class="flex items-center justify-between">
+    <span class="text-xs uppercase tracking-wide text-gray-400">
+      Type: {{ host.host_type or "unknown" }}
+    </span>
+
+    {% if not host.monitored %}
+      <button
+        hx-post="/network/scan/add"
+        hx-vals='{"ip":"{{ host.ip }}","host_type":"{{ host.host_type or "server" }}","hostname":"{{ host.hostname or "" }}"}'
+        hx-target="this"
+        hx-swap="outerHTML"
+        class="bg-blue-600 hover:bg-blue-700 px-3 py-1 rounded text-sm">
+        Add to Monitoring
+      </button>
+    {% else %}
+      <span class="text-green-400 text-sm">Monitoring Enabled</span>
+    {% endif %}
+  </div>
+
+</div>
+{% endfor %}

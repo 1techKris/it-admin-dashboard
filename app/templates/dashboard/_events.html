@@ -1,0 +1,32 @@
+{% if events %}
+  <div class="overflow-auto max-h-80">
+    <table class="min-w-full text-sm">
+      <thead class="text-gray-400">
+        <tr>
+          <th class="text-left p-2">Time (UTC)</th>
+          <th class="text-left p-2">Server</th>
+          <th class="text-left p-2">Status</th>
+          <th class="text-left p-2">Ping</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for e in events %}
+        <tr class="border-t border-border">
+          <td class="p-2 whitespace-nowrap">{{ e.ts }}</td>
+          <td class="p-2">{{ e.server.hostname }}</td>
+          <td class="p-2">
+            {% if e.online %}
+              <span class="text-green-400">Online</span>
+            {% else %}
+              <span class="text-red-400">Offline</span>
+            {% endif %}
+          </td>
+          <td class="p-2">{{ e.ping_ms if e.ping_ms is not none else "—" }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+{% else %}
+  <div class="text-gray-400">No events in the last hour.</div>
+{% endif %}

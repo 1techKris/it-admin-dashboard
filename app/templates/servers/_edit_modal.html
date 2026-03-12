@@ -1,0 +1,112 @@
+<!-- Backdrop -->
+<div class="fixed inset-0 bg-black/60 z-50"
+     hx-on="click: this.remove(); document.querySelector('#edit-server-modal')?.remove()">
+</div>
+
+<!-- Modal -->
+<div id="edit-server-modal"
+     class="fixed inset-0 z-50 flex items-center justify-center p-4"
+     hx-on="click: event.stopPropagation()">
+
+  <div class="bg-bgpanel border border-border rounded-lg w-full max-w-2xl overflow-hidden">
+
+    <div class="flex items-center justify-between p-4 border-b border-border">
+      <h3 class="text-xl font-semibold">Edit Server</h3>
+
+      <button class="px-3 py-1 rounded bg-gray-700 hover:bg-gray-600"
+              onclick="
+                document.querySelector('#edit-server-modal')?.remove();
+                document.querySelector('.bg-black\\/60')?.remove();
+              ">
+        Close
+      </button>
+    </div>
+
+    <form
+      hx-post="/servers/{{ server.id }}/edit"
+      hx-target="body"
+      hx-swap="none"
+      hx-encoding="multipart/form-data"
+      class="p-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+
+      <!-- Hostname -->
+      <div>
+        <label class="block text-sm text-gray-400 mb-1">Hostname</label>
+        <input name="hostname" value="{{ server.hostname }}" class="w-full bg-bghover border border-border rounded px-3 py-2">
+      </div>
+
+      <!-- IP -->
+      <div>
+        <label class="block text-sm text-gray-400 mb-1">IP Address</label>
+        <input name="ip_address" value="{{ server.ip_address }}" class="w-full bg-bghover border border-border rounded px-3 py-2">
+      </div>
+
+      <!-- OS -->
+      <div>
+        <label class="block text-sm text-gray-400 mb-1">OS Type</label>
+        <select name="os_type" class="w-full bg-bghover border border-border rounded px-3 py-2">
+          <option value="windows" {% if creds and creds.os_type == 'windows' %}selected{% endif %}>Windows</option>
+          <option value="linux" {% if creds and creds.os_type == 'linux' %}selected{% endif %}>Linux</option>
+        </select>
+      </div>
+
+      <!-- Username -->
+      <div>
+        <label class="block text-sm text-gray-400 mb-1">Username</label>
+        <input name="username" value="{{ creds.username if creds else '' }}" class="w-full bg-bghover border border-border rounded px-3 py-2">
+      </div>
+
+      <!-- Password -->
+      <div>
+        <label class="block text-sm text-gray-400 mb-1">Password</label>
+        <input name="password" type="password" value="{{ creds.password if creds else '' }}" class="w-full bg-bghover border border-border rounded px-3 py-2">
+      </div>
+
+      <!-- Port -->
+      <div>
+        <label class="block text-sm text-gray-400 mb-1">Port</label>
+        <input name="port" type="number" value="{{ creds.port if creds else '' }}" class="w-full bg-bghover border border-border rounded px-3 py-2">
+      </div>
+
+      <!-- Groups -->
+      <div class="md:col-span-2">
+        <label class="block text-sm text-gray-400 mb-1">Groups</label>
+        <div class="flex flex-wrap gap-3">
+          {% for g in groups %}
+            <label class="inline-flex items-center gap-2 text-sm">
+              <input type="checkbox" name="groups" value="{{ g.id }}"
+                {% if g.id in member_ids %}checked{% endif %}>
+              <span>{{ g.name }}</span>
+            </label>
+          {% endfor %}
+          {% if not groups %}
+            <span class="text-gray-500">No groups defined yet</span>
+          {% endif %}
+        </div>
+      </div>
+
+      <!-- Tags -->
+      <div class="md:col-span-2">
+        <label class="block text-sm text-gray-400 mb-1">Tags (comma separated)</label>
+        <input name="tags_csv" value="{{ tags_csv }}" class="w-full bg-bghover border border-border rounded px-3 py-2">
+      </div>
+
+      <!-- SAVE -->
+      <div class="md:col-span-2 flex justify-end gap-2">
+        <button type="button" class="px-3 py-1 rounded bg-gray-700"
+          onclick="
+            document.querySelector('#edit-server-modal')?.remove();
+            document.querySelector('.bg-black\\/60')?.remove();
+          ">
+          Cancel
+        </button>
+
+        <button type="submit" class="px-3 py-1 rounded bg-blue-600 hover:bg-blue-700">
+          Save
+        </button>
+      </div>
+
+    </form>
+
+  </div>
+</div>

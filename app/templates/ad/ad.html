@@ -1,0 +1,125 @@
+<div class="p-6 space-y-6">
+
+    <h1 class="text-xl font-semibold text-gray-200">Active Directory Settings</h1>
+    <p class="text-gray-400 text-sm">
+        Configure your Active Directory connection settings.  
+        These are used globally for all /ad routes and operations.
+    </p>
+
+    <!-- RESULT BOX (HTMX target) -->
+    <div id="adSettingsResult"></div>
+
+    <!-- SETTINGS FORM -->
+    <form
+        hx-post="/settings/ad"
+        hx-target="#adSettingsResult"
+        hx-swap="innerHTML"
+        class="space-y-4 bg-gray-900/50 p-5 rounded border border-gray-800 max-w-xl"
+    >
+
+        <!-- DOMAIN NAME -->
+        <div>
+            <label class="block text-gray-300 mb-1">Domain Name</label>
+            <input
+                type="text"
+                name="ad_domain"
+                value="{{ settings.ad_domain or '' }}"
+                placeholder="e.g. 1sttech.local"
+                class="w-full bg-gray-800 border border-gray-700 rounded p-2 text-gray-200"
+            />
+        </div>
+
+        <!-- DC HOSTNAME -->
+        <div>
+            <label class="block text-gray-300 mb-1">Domain Controller Hostname</label>
+            <input
+                type="text"
+                name="ad_dc_host"
+                value="{{ settings.ad_dc_host or '' }}"
+                placeholder="e.g. 1tech-dc"
+                class="w-full bg-gray-800 border border-gray-700 rounded p-2 text-gray-200"
+            />
+        </div>
+
+        <!-- DC IP (optional fallback) -->
+        <div>
+            <label class="block text-gray-300 mb-1">Domain Controller IP (optional)</label>
+            <input
+                type="text"
+                name="ad_dc_ip"
+                value="{{ settings.ad_dc_ip or '' }}"
+                placeholder="e.g. 192.168.125.10"
+                class="w-full bg-gray-800 border border-gray-700 rounded p-2 text-gray-200"
+            />
+        </div>
+
+        <!-- BASE DN -->
+        <div>
+            <label class="block text-gray-300 mb-1">Base DN</label>
+            <input
+                type="text"
+                name="ad_base_dn"
+                value="{{ settings.ad_base_dn or '' }}"
+                placeholder="e.g. DC=1sttech,DC=local"
+                class="w-full bg-gray-800 border border-gray-700 rounded p-2 text-gray-200"
+            />
+        </div>
+
+        <!-- DEFAULT USER OU -->
+        <div>
+            <label class="block text-gray-300 mb-1">Default New User OU</label>
+            <input
+                type="text"
+                name="ad_default_user_ou"
+                value="{{ settings.ad_default_user_ou or '' }}"
+                placeholder="e.g. OU=1stTech,DC=1sttech,DC=local"
+                class="w-full bg-gray-800 border border-gray-700 rounded p-2 text-gray-200"
+            />
+        </div>
+
+        <hr class="border-gray-700 my-4"/>
+
+        <!-- SERVICE ACCOUNT USERNAME -->
+        <div>
+            <label class="block text-gray-300 mb-1">Service Account Username</label>
+            <input
+                type="text"
+                name="ad_username"
+                value="{{ settings.ad_username or '' }}"
+                placeholder="e.g. svc_ad"
+                class="w-full bg-gray-800 border border-gray-700 rounded p-2 text-gray-200"
+            />
+        </div>
+
+        <!-- SERVICE ACCOUNT PASSWORD -->
+        <div>
+            <label class="block text-gray-300 mb-1">Service Account Password</label>
+            <input
+                type="password"
+                name="ad_password"
+                value="{{ settings.ad_password or '' }}"
+                placeholder="********"
+                class="w-full bg-gray-800 border border-gray-700 rounded p-2 text-gray-200"
+            />
+        </div>
+
+        <hr class="border-gray-700"/>
+
+        <button class="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded">
+            Save Settings
+        </button>
+    </form>
+
+    <!-- TEST CONNECTION -->
+    <div class="pt-4">
+        <button
+            class="bg-green-600 hover:bg-green-500 text-white px-4 py-2 rounded"
+            hx-post="/ad/test"
+            hx-target="#adSettingsResult"
+            hx-swap="innerHTML"
+        >
+            Test Connection
+        </button>
+    </div>
+
+</div>
