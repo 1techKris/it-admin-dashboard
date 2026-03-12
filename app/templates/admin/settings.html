@@ -5,10 +5,10 @@
 
 <div class="bg-bgpanel border border-border p-6 rounded-lg w-full max-w-xl space-y-6">
 
+  <!-- ========== WMI ========== -->
   <h2 class="text-xl font-semibold mb-4">Global WMI Credentials</h2>
 
-	<form hx-post="/servers/admin/settings/wmi" hx-target="#save-msg">
-
+  <form hx-post="/settings/wmi" hx-target="#save-msg-wmi" hx-swap="innerHTML">
     <label class="block text-sm text-gray-400 mb-1">Username</label>
     <input type="text" name="username" value="{{ wmi_username or '' }}"
            class="w-full p-2 bg-bghover border border-border rounded">
@@ -18,50 +18,71 @@
            class="w-full p-2 bg-bghover border border-border rounded">
 
     <button class="mt-4 bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded">
-      Save Settings
+      Save WMI Settings
     </button>
   </form>
 
-  <div id="save-msg" class="text-sm mt-3"></div>
-<!-- ACTIVE DIRECTORY SETTINGS -->
-<h2 class="text-xl font-semibold mt-10 mb-4">Active Directory Settings</h2>
+  <div id="save-msg-wmi" class="text-sm mt-3"></div>
 
-<form hx-post="/admin/settings/ad" hx-target="#save-msg-ad">
+  <hr class="border-border/50 my-6"/>
 
+  <!-- ========== ACTIVE DIRECTORY ========== -->
+  <h2 class="text-xl font-semibold mb-4">Active Directory Settings</h2>
+
+  <form hx-post="/settings/ad" hx-target="#save-msg-ad" hx-swap="innerHTML">
     <label class="block text-sm text-gray-400 mb-1">Domain Name</label>
     <input type="text" name="ad_domain" value="{{ ad_domain or '' }}"
+           placeholder="e.g. 1sttech.local"
            class="w-full p-2 bg-bghover border border-border rounded">
 
     <label class="block text-sm text-gray-400 mt-4 mb-1">Domain Controller Hostname</label>
     <input type="text" name="ad_dc_host" value="{{ ad_dc_host or '' }}"
+           placeholder="e.g. 1tech-dc"
            class="w-full p-2 bg-bghover border border-border rounded">
 
     <label class="block text-sm text-gray-400 mt-4 mb-1">Domain Controller IP (optional)</label>
     <input type="text" name="ad_dc_ip" value="{{ ad_dc_ip or '' }}"
+           placeholder="e.g. 192.168.125.10"
            class="w-full p-2 bg-bghover border border-border rounded">
 
     <label class="block text-sm text-gray-400 mt-4 mb-1">Base DN</label>
     <input type="text" name="ad_base_dn" value="{{ ad_base_dn or '' }}"
+           placeholder="e.g. DC=1sttech,DC=local"
            class="w-full p-2 bg-bghover border border-border rounded">
 
     <label class="block text-sm text-gray-400 mt-4 mb-1">Default New User OU</label>
     <input type="text" name="ad_default_user_ou" value="{{ ad_default_user_ou or '' }}"
+           placeholder="e.g. OU=1stTech,DC=1sttech,DC=local"
            class="w-full p-2 bg-bghover border border-border rounded">
 
     <label class="block text-sm text-gray-400 mt-4 mb-1">Service Account Username</label>
     <input type="text" name="ad_username" value="{{ ad_username or '' }}"
+           placeholder="e.g. svc_ad or 1STTECH\\svc_ad"
            class="w-full p-2 bg-bghover border border-border rounded">
 
     <label class="block text-sm text-gray-400 mt-4 mb-1">Service Account Password</label>
     <input type="password" name="ad_password" value="{{ ad_password or '' }}"
+           placeholder="********"
            class="w-full p-2 bg-bghover border border-border rounded">
 
     <button class="mt-4 bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded">
-        Save AD Settings
+      Save AD Settings
     </button>
-</form>
+  </form>
 
-<div id="save-msg-ad" class="text-sm mt-3"></div>
+  <div id="save-msg-ad" class="text-sm mt-3"></div>
+
+  <div class="pt-2">
+    <button
+      class="bg-green-600 hover:bg-green-500 text-white px-4 py-2 rounded"
+      hx-post="/settings/ad/test"
+      hx-target="#save-msg-ad"
+      hx-swap="innerHTML"
+    >
+      Test AD Connection
+    </button>
+  </div>
+
 </div>
 
 {% endblock %}
