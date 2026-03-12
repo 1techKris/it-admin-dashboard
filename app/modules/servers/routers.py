@@ -109,7 +109,12 @@ async def server_list(
         }
     )
 
+from fastapi.responses import RedirectResponse
 
+@router.get("/admin/settings", response_class=HTMLResponse)
+async def admin_settings_redirect():
+    # Permanent redirect to centralized settings
+    return RedirectResponse(url="/settings/", status_code=307)
 # ==========================================================
 # ADMIN SETTINGS PAGE (WMI + AD)
 # ==========================================================
@@ -530,4 +535,5 @@ async def metrics_json(
         "cpu": [m.cpu_percent for m in ms],
         "ram": [m.ram_percent for m in ms],
         "disk": [m.disk_percent for m in ms],
+
     }
