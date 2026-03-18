@@ -1,0 +1,68 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual environments
+.venv/
+venv/
+ENV/
+env/
+.env/
+
+# FastAPI / Backend specific
+*.sqlite3
+*.sqlite3-*
+*.db
+alembic/versions/  # we'll keep this later, but ignore generated until ready
+
+# Environment variables
+.env
+.env.local
+.env.*.local
+
+# Frontend / Node
+node_modules/
+dist/
+build/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# IDEs and editors
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Docker / Infra temp
+infra/.env
+
+# Coverage and tests
+.coverage
+htmlcov/
+.pytest_cache/
+.tox/
