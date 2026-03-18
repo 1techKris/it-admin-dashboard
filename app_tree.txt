@@ -1,0 +1,163 @@
+.
+├── README.md
+├── app_tree.txt
+├── backend
+│   ├── admindb.sqlite3
+│   ├── admindb.sqlite3.bak
+│   ├── alembic
+│   │   └── versions
+│   │       ├── xxxx_vpn_alert_rules.py
+│   │       └── xxxx_vpn_history.py
+│   ├── app
+│   │   ├── __init__.py
+│   │   ├── api
+│   │   │   ├── __init__.py
+│   │   │   └── v1
+│   │   │       ├── __init__.py
+│   │   │       └── routers
+│   │   │           ├── __init__.py
+│   │   │           ├── ad.py
+│   │   │           ├── alerts.py
+│   │   │           ├── device_actions.py
+│   │   │           ├── device_edit.py
+│   │   │           ├── devices.py
+│   │   │           ├── devices_ws.py
+│   │   │           ├── network.py
+│   │   │           ├── printers.py
+│   │   │           ├── settings.py
+│   │   │           ├── settings_ad.py
+│   │   │           ├── settings_vpn.py
+│   │   │           ├── vpn.py
+│   │   │           ├── vpn_alerts.py
+│   │   │           └── vpn_history.py
+│   │   ├── core
+│   │   │   ├── __init__.py
+│   │   │   └── config.py
+│   │   ├── db
+│   │   │   ├── __init__.py
+│   │   │   ├── session.py
+│   │   │   └── vpn_history_db.py
+│   │   ├── main.py
+│   │   ├── models
+│   │   │   ├── __all_models__.py
+│   │   │   ├── __init__.py
+│   │   │   ├── app_setting.py
+│   │   │   ├── base.py
+│   │   │   ├── device.py
+│   │   │   ├── printer.py
+│   │   │   ├── vpn_alert_rule.py
+│   │   │   └── vpn_history.py
+│   │   ├── schemas
+│   │   │   ├── __init__.py
+│   │   │   └── device.py
+│   │   ├── services
+│   │   │   ├── __init__.py
+│   │   │   ├── ad_config.py
+│   │   │   ├── ad_debug.py
+│   │   │   ├── ad_ou_tree.py
+│   │   │   ├── ad_service.py
+│   │   │   ├── background_scheduler.py
+│   │   │   ├── banner_grabber.py
+│   │   │   ├── device_monitor.py
+│   │   │   ├── geoip_service.py
+│   │   │   ├── os_fingerprint.py
+│   │   │   ├── printer_snmp.py
+│   │   │   ├── scanner_service.py
+│   │   │   ├── service_labels.py
+│   │   │   ├── vpn_alert_rules_init.py
+│   │   │   ├── vpn_alert_service.py
+│   │   │   ├── vpn_history_service.py
+│   │   │   └── vpn_service.py
+│   │   └── utils
+│   │       └── __init__.py
+│   ├── requirements.txt
+│   ├── vpn_history.sqlite3
+│   ├── vpn_history.sqlite3-shm
+│   └── vpn_history.sqlite3-wal
+├── frontend
+│   ├── README.md
+│   ├── eslint.config.js
+│   ├── index.html
+│   ├── package-lock.json
+│   ├── package.json
+│   ├── public
+│   │   ├── favicon.svg
+│   │   └── icons.svg
+│   ├── src
+│   │   ├── App.css
+│   │   ├── App.tsx
+│   │   ├── assets
+│   │   │   ├── hero.png
+│   │   │   ├── react.svg
+│   │   │   └── vite.svg
+│   │   ├── components
+│   │   │   ├── KpiCard.tsx
+│   │   │   ├── LiveCharts.tsx
+│   │   │   ├── Sidebar.tsx
+│   │   │   ├── Topbar.tsx
+│   │   │   └── toast
+│   │   │       └── ToastProvider.tsx
+│   │   ├── features
+│   │   │   ├── ad
+│   │   │   │   ├── ADComputers.tsx
+│   │   │   │   ├── ADDebugPanel.tsx
+│   │   │   │   ├── ADGroups.tsx
+│   │   │   │   ├── ADUserModal.tsx
+│   │   │   │   ├── ADUsers.tsx
+│   │   │   │   ├── ADVPNUsers.tsx
+│   │   │   │   └── OUTree.tsx
+│   │   │   ├── alerts
+│   │   │   │   └── Alerts.tsx
+│   │   │   ├── dashboard
+│   │   │   │   ├── Dashboard.tsx
+│   │   │   │   └── VPNCard.tsx
+│   │   │   ├── network
+│   │   │   │   └── NetworkScan.tsx
+│   │   │   ├── printers
+│   │   │   │   ├── PrinterDetailModal.tsx
+│   │   │   │   ├── PrinterEditModal.tsx
+│   │   │   │   └── Printers.tsx
+│   │   │   ├── servers
+│   │   │   │   ├── DeviceDetailModal.tsx
+│   │   │   │   ├── DeviceModal.tsx
+│   │   │   │   └── Servers.tsx
+│   │   │   ├── settings
+│   │   │   │   ├── SettingsAD.tsx
+│   │   │   │   └── SettingsVPN.tsx
+│   │   │   ├── switches
+│   │   │   │   ├── SwitchDetailModal.tsx
+│   │   │   │   └── Switches.tsx
+│   │   │   └── vpn
+│   │   │       ├── ConfirmDisconnectModal.tsx
+│   │   │       ├── VPNAlerts.tsx
+│   │   │       ├── VPNGeoIPBadge.tsx
+│   │   │       ├── VPNHistory.tsx
+│   │   │       ├── VPNSessions.tsx
+│   │   │       ├── VPNUsageChart.tsx
+│   │   │       └── VPNUsageSparkline.tsx
+│   │   ├── index.css
+│   │   ├── layout
+│   │   │   ├── Layout.tsx
+│   │   │   ├── Sidebar.tsx
+│   │   │   ├── Topbar.tsx
+│   │   │   └── index.ts
+│   │   ├── lib
+│   │   │   ├── api
+│   │   │   │   ├── client.ts
+│   │   │   │   ├── endpoints.ts
+│   │   │   │   └── fetchAllAD.ts
+│   │   │   └── hooks
+│   │   │       ├── useGeoIP.ts
+│   │   │       ├── useRelativeTime.ts
+│   │   │       ├── useVPNAlerts.ts
+│   │   │       └── useVPNHistory.ts
+│   │   └── main.tsx
+│   ├── tsconfig.app.json
+│   ├── tsconfig.json
+│   ├── tsconfig.node.json
+│   └── vite.config.ts
+└── infra
+    ├── docker-compose.yml
+    └── nginx.conf
+
+35 directories, 126 files
