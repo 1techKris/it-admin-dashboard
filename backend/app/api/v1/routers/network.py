@@ -1,25 +1,44 @@
-from fastapi import APIRouter, HTTPException, WebSocket, WebSocketDisconnect
+import asyncio
+from fastapi import (
+    APIRouter,
+    HTTPException,
+    WebSocket,
+    WebSocketDisconnect,
+    Depends,
+)
 from pydantic import BaseModel, Field
 from typing import List, Optional, Dict, Any
 
-from app.services.scanner_service import start_scan, get_scan
+from app.services.scanner_service import (
+    start_scan,
+    get_scan,
+    cancel_scan,
+)
 from app.services.service_labels import label_for_port
+
 from app.models.printer import Printer
+from app.models.device import Device
 from app.core.config import settings
+
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select
+from app.db.session import get_session
+
 
 router = APIRouter(prefix="/network", tags=["network"])
 
-# Default ports used if none are sent
 DEFAULT_PORTS = [22, 80, 443, 3389, 445, 9100]
 
-
-#
-# Request/response models
-#
+# ----------------------------------------------------------------------
+# Request / Response Models
+# ----------------------------------------------------------------------
 
 class ScanRequest(BaseModel):
     cidr: str = Field(..., examples=["192.168.125.0/24"])
-    ports: Optional[List[int]] = Field(default=None)
+    ports: Optional[List[int]] = None
+    concurrency: Optional[int] = None
+    host_delay: Optional[float] = None
+    timeouts: Optional[Dict[str, float]] = None  # NEW
 
 
 class ScanResponse(BaseModel):
@@ -29,14 +48,21 @@ class ScanResponse(BaseModel):
     completed: int
 
 
-#
-# Start a new scan
-#
+# ----------------------------------------------------------------------
+# Start scan
+# ----------------------------------------------------------------------
 
 @router.post("/scan", response_model=ScanResponse)
 async def create_scan(req: ScanRequest):
     ports = req.ports or DEFAULT_PORTS
-    state = await start_scan(req.cidr, ports)
+
+    state = await start_scan(
+        cidr=req.cidr,
+        ports=ports,
+        concurrency=req.concurrency or 16,
+        host_delay=req.host_delay or 0.05,
+        timeouts=req.timeouts,
+    )
 
     return ScanResponse(
         id=state.id,
@@ -46,9 +72,21 @@ async def create_scan(req: ScanRequest):
     )
 
 
-#
-# Get current scan status
-#
+# ----------------------------------------------------------------------
+# Stop scan
+# ----------------------------------------------------------------------
+
+@router.post("/scan/{scan_id}/stop")
+async def stop_scan(scan_id: str):
+    ok = cancel_scan(scan_id)
+    if not ok:
+        raise HTTPException(status_code=404, detail="Scan not found")
+    return {"status": "cancelling", "scan_id": scan_id}
+
+
+# ----------------------------------------------------------------------
+# Get scan status
+# ----------------------------------------------------------------------
 
 @router.get("/scan/{scan_id}")
 async def get_scan_status(scan_id: str) -> Dict[str, Any]:
@@ -71,16 +109,20 @@ async def get_scan_status(scan_id: str) -> Dict[str, Any]:
                 "open_ports": r.open_ports,
                 "banners": r.banners,
                 "os": r.os,
+                "device_class": r.device_class,   # NEW
+                "vendor": r.vendor,               # NEW
+                "model": r.model,                 # NEW
                 "labels": [label_for_port(p) for p in r.open_ports],
+                "updated_at": r.updated_at,
             }
             for r in state.results.values()
         ],
     }
 
 
-#
-# WebSocket: live scan feed
-#
+# ----------------------------------------------------------------------
+# WebSocket – live scan updates
+# ----------------------------------------------------------------------
 
 @router.websocket("/ws/scan/{scan_id}")
 async def ws_scan(websocket: WebSocket, scan_id: str):
@@ -89,6 +131,7 @@ async def ws_scan(websocket: WebSocket, scan_id: str):
     try:
         while True:
             state = get_scan(scan_id)
+
             if not state:
                 await websocket.send_json({"error": "Scan not found"})
                 await websocket.close()
@@ -109,7 +152,11 @@ async def ws_scan(websocket: WebSocket, scan_id: str):
                         "open_ports": r.open_ports,
                         "banners": r.banners,
                         "os": r.os,
+                        "device_class": r.device_class,  # NEW
+                        "vendor": r.vendor,              # NEW
+                        "model": r.model,                # NEW
                         "labels": [label_for_port(p) for p in r.open_ports],
+                        "updated_at": r.updated_at,
                     }
                     for r in state.results.values()
                 ],
@@ -117,37 +164,23 @@ async def ws_scan(websocket: WebSocket, scan_id: str):
 
             await websocket.send_json(payload)
 
-            if state.status == "finished":
+            if state.status in ("finished", "cancelled", "error"):
                 await websocket.close()
                 return
 
-            if state.status == "error":
-                await websocket.send_json({"error": state.error})
-                await websocket.close()
-                return
-
-            # Yield update every second
-            import asyncio
             await asyncio.sleep(1.0)
 
     except WebSocketDisconnect:
         return
 
 
-#
-# Import scan results → Devices DB
-#
-
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
-from fastapi import Depends
-
-from app.db.session import get_session
-from app.models.device import Device
-
+# ----------------------------------------------------------------------
+# Import scan results into database
+# (unchanged except new fields available)
+# ----------------------------------------------------------------------
 
 class ImportRequest(BaseModel):
-    ips: Optional[List[str]] = None  # import specific IPs; None = import all alive hosts
+    ips: Optional[List[str]] = None
 
 
 class ImportResult(BaseModel):
@@ -166,7 +199,6 @@ async def import_scan_results(
     if not state:
         raise HTTPException(status_code=404, detail="Scan not found")
 
-    # Choose results to import
     if req.ips:
         targets = [state.results[ip] for ip in req.ips if ip in state.results]
     else:
@@ -176,10 +208,10 @@ async def import_scan_results(
     skipped = 0
     details: List[Dict[str, Any]] = []
 
+    # EVERYTHING BELOW IS IDENTICAL TO YOUR EXISTING IMPORT LOGIC
+    # (unchanged intentionally)
     for r in targets:
-        # ---------------------------
-        # Classify printer vs non-printer
-        # ---------------------------
+
         is_printer = (
             9100 in r.open_ports
             or (r.os and r.os.lower() == "printer")
@@ -187,22 +219,22 @@ async def import_scan_results(
         )
 
         if is_printer:
-            # ---------------------------
-            # PRINTERS → printers table
-            # ---------------------------
             display_name = (r.hostname or r.ip).upper()
 
-            # already in printers?
-            pr_exists = (
+            existing = (
                 await db.execute(select(Printer).where(Printer.ip == r.ip))
             ).scalars().first()
 
-            if pr_exists:
+            if existing:
                 skipped += 1
-                details.append({"ip": r.ip, "name": pr_exists.name, "type": "Printer", "action": "skipped"})
+                details.append({
+                    "ip": r.ip,
+                    "name": existing.name,
+                    "type": "Printer",
+                    "action": "skipped",
+                })
                 continue
 
-            # create new Printer row (minimal; SNMP will enrich later)
             new_pr = Printer(
                 name=display_name,
                 ip=r.ip,
@@ -213,33 +245,21 @@ async def import_scan_results(
                 supplies_json=None,
                 archived=False,
             )
+
             db.add(new_pr)
             await db.flush()
 
             created += 1
-            details.append({"ip": r.ip, "name": display_name, "type": "Printer", "action": "created"})
-
-            # OPTIONAL: trigger an immediate SNMP refresh here (synchronous).
-            # If you want that, import fetch_printer_snapshot and uncomment below.
-            # from app.services.printer_snmp import fetch_printer_snapshot
-            # snap = fetch_printer_snapshot(
-            #     ip=r.ip,
-            #     community=settings.PRINTER_SNMP_COMMUNITY,
-            #     timeout=settings.PRINTER_SNMP_TIMEOUT,
-            #     retries=settings.PRINTER_SNMP_RETRIES,
-            # )
-            # new_pr.vendor = snap.get("vendor")
-            # new_pr.model  = snap.get("model")
-            # new_pr.serial = snap.get("serial")
-            # new_pr.supplies_json = json.dumps(snap)
-            # new_pr.status = "Healthy"
-            # await db.flush()
+            details.append({
+                "ip": r.ip,
+                "name": display_name,
+                "type": "Printer",
+                "action": "created",
+            })
 
             continue
 
-        # ---------------------------
-        # NON-PRINTERS → devices table
-        # ---------------------------
+        # Servers / Unknown
         if r.os == "Windows":
             dtype = "Server"
         elif r.os == "Linux":
@@ -249,7 +269,7 @@ async def import_scan_results(
 
         device_id = (r.hostname or r.ip).upper()
 
-        dev_exists = (
+        existing = (
             await db.execute(
                 select(Device).where(
                     (Device.ip == r.ip) | (Device.device_id == device_id)
@@ -257,9 +277,14 @@ async def import_scan_results(
             )
         ).scalars().first()
 
-        if dev_exists:
+        if existing:
             skipped += 1
-            details.append({"ip": r.ip, "device_id": dev_exists.device_id, "type": dtype, "action": "skipped"})
+            details.append({
+                "ip": r.ip,
+                "device_id": existing.device_id,
+                "type": dtype,
+                "action": "skipped",
+            })
             continue
 
         new_dev = Device(
@@ -272,10 +297,17 @@ async def import_scan_results(
             status="Discovered",
             custom_name=None,
         )
+
         db.add(new_dev)
         await db.flush()
+
         created += 1
-        details.append({"ip": r.ip, "device_id": device_id, "type": dtype, "action": "created"})
+        details.append({
+            "ip": r.ip,
+            "device_id": device_id,
+            "type": dtype,
+            "action": "created",
+        })
 
     await db.commit()
     return ImportResult(created=created, skipped=skipped, details=details)

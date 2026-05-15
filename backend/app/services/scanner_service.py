@@ -6,32 +6,41 @@ import socket
 import shutil
 import uuid
 import logging
-import time
 from dataclasses import dataclass, field
 from typing import Dict, List, Optional
 from concurrent.futures import ThreadPoolExecutor
+from datetime import datetime
 
 from easysnmp import Session
 
-from .banner_grabber import grab_http_banner, grab_ssh_banner, grab_smb_banner_from_name
-from .os_fingerprint import guess_device_type
+from app.db.session import AsyncSessionLocal
+from app.models.scan_history import ScanHistory
 
+from .banner_grabber import grab_http_banner, grab_ssh_banner, grab_smb_banner_from_name
+from .fingerprint_engine import classify_device  # NEW
+from .os_fingerprint import guess_device_type  # still used for legacy detection where applicable
 
 logger = logging.getLogger(__name__)
 
-# --------------------------------------------------------------------------------------
-# Safe Defaults & Executors
-# --------------------------------------------------------------------------------------
+# ----------------------------------------------------------------------
+# Global defaults / executors
+# ----------------------------------------------------------------------
 
 SNMP_EXECUTOR = ThreadPoolExecutor(max_workers=20, thread_name_prefix="snmp_worker")
 
-DEFAULT_CONCURRENCY = 16      # Safer than 64
-DEFAULT_HOST_DELAY = 0.05     # 50ms between hosts (throttling)
+SCAN_CANCEL_FLAGS: Dict[str, bool] = {}
+
+DEFAULT_CONCURRENCY = 16
+DEFAULT_HOST_DELAY = 0.05
 
 
-# --------------------------------------------------------------------------------------
-# Data Models
-# --------------------------------------------------------------------------------------
+def _cancelled(scan_id: str) -> bool:
+    return SCAN_CANCEL_FLAGS.get(scan_id, False)
+
+
+# ----------------------------------------------------------------------
+# Data classes
+# ----------------------------------------------------------------------
 
 @dataclass
 class HostResult:
@@ -41,10 +50,11 @@ class HostResult:
     open_ports: List[int] = field(default_factory=list)
     banners: Dict[int, str] = field(default_factory=dict)
     os: Optional[str] = None
-    device_type: Optional[str] = None
+    device_class: Optional[str] = None  # NEW
     vendor: Optional[str] = None
     model: Optional[str] = None
     sysdescr: Optional[str] = None
+    updated_at: Optional[float] = None
 
 
 @dataclass
@@ -52,22 +62,29 @@ class ScanState:
     id: str
     cidr: str
     ports: List[int]
+
     status: str = "running"
     total: int = 0
     completed: int = 0
     results: Dict[str, HostResult] = field(default_factory=dict)
     error: Optional[str] = None
 
+    concurrency: int = DEFAULT_CONCURRENCY
+    host_delay: float = DEFAULT_HOST_DELAY
+    timeouts: Dict[str, float] = field(default_factory=dict)
 
-SCANS: Dict[str, ScanState] = {}   # In‑memory store
+    started_at: float = field(default_factory=lambda: datetime.utcnow().timestamp())
+    finished_at: Optional[float] = None
 
 
-# --------------------------------------------------------------------------------------
-# Helper Functions
-# --------------------------------------------------------------------------------------
+SCANS: Dict[str, ScanState] = {}
+
+
+# ----------------------------------------------------------------------
+# Utils
+# ----------------------------------------------------------------------
 
 async def _run_cmd(cmd: str, timeout: float) -> int:
-    """Execute a shell command with timeout and return exit code."""
     try:
         proc = await asyncio.create_subprocess_exec(
             *shlex.split(cmd),
@@ -76,22 +93,20 @@ async def _run_cmd(cmd: str, timeout: float) -> int:
         )
         await asyncio.wait_for(proc.communicate(), timeout=timeout)
         return proc.returncode
-    except asyncio.TimeoutError:
-        with contextlib.suppress(ProcessLookupError):
-            proc.kill()
-        return 1
     except Exception:
         return 1
 
 
-async def _ping_host(ip: str, timeout_s: float = 1.0) -> bool:
-    """Ping a host using the system ping command."""
+async def _ping_host(scan_id: str, ip: str, timeout_s: float) -> bool:
+    if _cancelled(scan_id):
+        return False
     cmd = f"ping -c 1 -W {int(timeout_s)} {ip}"
-    return await _run_cmd(cmd, timeout_s + 0.5) == 0
+    return await _run_cmd(cmd, timeout_s + 0.3) == 0
 
 
-async def _check_port(ip: str, port: int, timeout_s: float = 2.5) -> bool:
-    """Try opening a TCP connection to a port."""
+async def _check_port(scan_id: str, ip: str, port: int, timeout_s: float) -> bool:
+    if _cancelled(scan_id):
+        return False
     try:
         reader, writer = await asyncio.wait_for(
             asyncio.open_connection(ip, port), timeout=timeout_s
@@ -104,29 +119,33 @@ async def _check_port(ip: str, port: int, timeout_s: float = 2.5) -> bool:
         return False
 
 
-async def _rdns(ip: str, timeout_s: float = 1.5) -> Optional[str]:
-    """Reverse DNS lookup with timeout."""
-    async def _lookup():
+async def _rdns(scan_id: str, ip: str, timeout_s: float):
+    if _cancelled(scan_id):
+        return None
+
+    async def do_lookup():
         try:
             return socket.gethostbyaddr(ip)[0]
         except Exception:
             return None
 
     try:
-        return await asyncio.wait_for(asyncio.to_thread(_lookup), timeout=timeout_s)
-    except asyncio.TimeoutError:
+        return await asyncio.wait_for(asyncio.to_thread(do_lookup), timeout=timeout_s)
+    except Exception:
         return None
 
 
-async def _netbios_name(ip: str, timeout_s: float = 2.0) -> Optional[str]:
-    """Retrieve NetBIOS name via nmblookup, parse workstation name (0x00)."""
-    nmb = shutil.which("nmblookup")
-    if not nmb:
+async def _netbios_name(scan_id: str, ip: str, timeout_s: float):
+    if _cancelled(scan_id):
+        return None
+
+    path = shutil.which("nmblookup")
+    if not path:
         return None
 
     try:
         proc = await asyncio.create_subprocess_exec(
-            nmb, "-A", ip,
+            path, "-A", ip,
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.DEVNULL,
         )
@@ -136,9 +155,7 @@ async def _netbios_name(ip: str, timeout_s: float = 2.0) -> Optional[str]:
         for line in text.splitlines():
             line = line.strip()
             if "<00>" in line and "<GROUP>" not in line:
-                name = line.split("<")[0].strip()
-                if name:
-                    return name
+                return line.split("<")[0].strip()
 
     except Exception:
         return None
@@ -146,179 +163,223 @@ async def _netbios_name(ip: str, timeout_s: float = 2.0) -> Optional[str]:
     return None
 
 
-async def _get_sysdescr(ip: str, community: str = "public", timeout: float = 2.0) -> Optional[str]:
-    """SNMP sysDescr retrieval (blocking call in dedicated executor)."""
+async def _get_sysdescr(scan_id: str, ip: str, community: str, timeout: float):
+    if _cancelled(scan_id):
+        return None
 
-    def snmp_query():
+    def do_snmp():
         try:
-            s = Session(
+            sess = Session(
                 hostname=ip,
                 community=community,
                 version=2,
                 timeout=int(timeout),
                 retries=1,
             )
-            item = s.get("1.3.6.1.2.1.1.1.0")
-            return item.value if item and item.value else None
-        except Exception as e:
-            logger.debug(f"SNMP failure {ip}: {e}")
+            item = sess.get("1.3.6.1.2.1.1.1.0")
+            return item.value if item else None
+        except Exception:
             return None
 
-    try:
-        return await asyncio.get_running_loop().run_in_executor(
-            SNMP_EXECUTOR, snmp_query
-        )
-    except Exception as e:
-        logger.warning(f"SNMP executor error for {ip}: {e}")
+    loop = asyncio.get_running_loop()
+    return await loop.run_in_executor(SNMP_EXECUTOR, do_snmp)
+
+
+# ----------------------------------------------------------------------
+# Host Scanning
+# ----------------------------------------------------------------------
+
+async def _scan_host(scan_id, ip, ports, sem, t) -> HostResult:
+    if _cancelled(scan_id):
+        return HostResult(ip=ip)
+
+    res = HostResult(ip=ip)
+    changed = False
+
+    # Ping
+    async with sem:
+        res.alive = await _ping_host(scan_id, ip, timeout_s=t["ping"])
+
+    if _cancelled(scan_id):
+        return res
+
+    # DNS / NetBIOS
+    rdns_task = asyncio.create_task(_rdns(scan_id, ip, t["rdns"]))
+    nb_task = asyncio.create_task(_netbios_name(scan_id, ip, t["netbios"]))
+
+    # Port scanning
+    async def probe(port: int):
+        if _cancelled(scan_id):
+            return None
+        async with sem:
+            if await _check_port(scan_id, ip, port, timeout_s=t["port"]):
+                return port
         return None
 
+    port_tasks = {p: asyncio.create_task(probe(p)) for p in ports}
 
-# --------------------------------------------------------------------------------------
-# Host Scanning
-# --------------------------------------------------------------------------------------
+    for task in asyncio.as_completed([*port_tasks.values(), rdns_task, nb_task]):
+        val = await task
 
-async def _scan_host(ip: str, ports: List[int], sem: asyncio.Semaphore) -> HostResult:
-    res = HostResult(ip=ip)
+        if isinstance(val, int):
+            res.open_ports.append(val)
+            changed = True
+        elif isinstance(val, str) and not res.hostname:
+            res.hostname = val
+            changed = True
 
-    try:
-        # ---------------- Ping ----------------
-        async with sem:
-            res.alive = await _ping_host(ip)
+    if not res.alive and res.open_ports:
+        res.alive = True
+        changed = True
 
-        # ---------------- DNS + NetBIOS ----------------
-        dns_task = asyncio.create_task(_rdns(ip))
-        nb_task = asyncio.create_task(_netbios_name(ip))
+    # Banner grabbing
+    banners = {}
 
-        # ---------------- Port scanning ----------------
-        async def probe(port: int) -> Optional[int]:
-            async with sem:
-                if await _check_port(ip, port):
-                    return port
-            return None
+    if 22 in res.open_ports:
+        banners[22] = asyncio.create_task(grab_ssh_banner(ip, 22))
+    if 80 in res.open_ports:
+        banners[80] = asyncio.create_task(grab_http_banner(ip, 80, use_ssl=False))
+    if 443 in res.open_ports:
+        banners[443] = asyncio.create_task(grab_http_banner(ip, 443, use_ssl=True))
+    if 445 in res.open_ports:
+        banners[445] = asyncio.create_task(grab_smb_banner_from_name(res.hostname))
 
-        port_tasks = {port: asyncio.create_task(probe(port)) for port in ports}
+    for p, task in banners.items():
+        if _cancelled(scan_id):
+            return res
+        try:
+            banner = await asyncio.wait_for(task, timeout=t["banner"])
+            if banner:
+                res.banners[p] = banner
+                changed = True
+        except Exception:
+            pass
 
-        # consume RDNS + NetBIOS while ports are scanning
-        for coro in asyncio.as_completed(list(port_tasks.values()) + [dns_task, nb_task]):
-            res_val = await coro
+    # SNMP sysDescr
+    res.sysdescr = await _get_sysdescr(scan_id, ip, "public", timeout=t["snmp"])
 
-            # Port result
-            if isinstance(res_val, int):
-                res.open_ports.append(res_val)
+    # ------------------------------------------------------------------
+    # FINGERPRINT ENGINE (NEW)
+    # ------------------------------------------------------------------
+    classification = classify_device(
+        ip=res.ip,
+        open_ports=res.open_ports,
+        banners=res.banners,
+        hostname=res.hostname,
+        sysdescr=res.sysdescr,
+    )
 
-            # Hostname result
-            elif isinstance(res_val, str) and res_val:
-                if not res.hostname:
-                    res.hostname = res_val
+    res.device_class = classification["class"]
+    res.vendor = classification["vendor"]
+    res.model = classification["model"]
+    if classification["os"]:
+        res.os = classification["os"]
 
-        if not res.alive and res.open_ports:
-            res.alive = True
-
-        # ---------------- Banner grabbing ----------------
-        banner_tasks = {}
-
-        if 22 in res.open_ports:
-            banner_tasks[22] = asyncio.create_task(grab_ssh_banner(ip, 22))
-
-        if 80 in res.open_ports:
-            banner_tasks[80] = asyncio.create_task(grab_http_banner(ip, 80, use_ssl=False))
-
-        if 443 in res.open_ports:
-            banner_tasks[443] = asyncio.create_task(grab_http_banner(ip, 443, use_ssl=True))
-
-        if 445 in res.open_ports:
-            banner_tasks[445] = asyncio.create_task(grab_smb_banner_from_name(res.hostname))
-
-        for port, task in banner_tasks.items():
-            try:
-                banner = await task
-                if banner:
-                    res.banners[port] = banner
-            except Exception:
-                pass
-
-        # ---------------- SNMP sysDescr ----------------
-        res.sysdescr = await _get_sysdescr(ip)
-
-        # ---------------- Device fingerprinting ----------------
-        inventory = guess_device_type(
-            open_ports=res.open_ports,
-            hostname=res.hostname,
-            ssh_banner=res.banners.get(22),
-            http_banner=res.banners.get(80) or res.banners.get(443),
-            netbios_name=res.hostname,
-            sysdescr=res.sysdescr,
-        )
-
-        res.os = inventory["device_type"]
-        res.device_type = inventory["device_type"]
-        res.vendor = inventory["vendor"]
-        res.model = inventory["model"]
-
-    except Exception as e:
-        logger.error(f"Error scanning host {ip}: {e}", exc_info=True)
+    # If changed, update timestamp
+    if changed or res.device_class or res.vendor or res.model:
+        res.updated_at = datetime.utcnow().timestamp()
 
     return res
 
 
-# --------------------------------------------------------------------------------------
+# ----------------------------------------------------------------------
 # Scan Controller
-# --------------------------------------------------------------------------------------
+# ----------------------------------------------------------------------
 
-async def start_scan(
-    cidr: str,
-    ports: List[int],
-    concurrency: int = DEFAULT_CONCURRENCY,
-    host_delay: float = DEFAULT_HOST_DELAY,
-) -> ScanState:
-
-    try:
-        net = ipaddress.ip_network(cidr, strict=False)
-    except Exception as e:
-        raise ValueError(f"Invalid CIDR {cidr}: {e}")
-
+async def start_scan(cidr, ports, concurrency, host_delay, timeouts):
+    net = ipaddress.ip_network(cidr, strict=False)
     hosts = [str(h) for h in net.hosts()]
     scan_id = str(uuid.uuid4())
+
+    # Default timeouts if UI sent none
+    if not timeouts:
+        timeouts = {
+            "ping": 0.5,
+            "port": 1.0,
+            "snmp": 1.5,
+            "banner": 1.0,
+            "rdns": 0.7,
+            "netbios": 1.0,
+        }
 
     state = ScanState(
         id=scan_id,
         cidr=cidr,
-        ports=sorted(set(ports)),
+        ports=ports,
         total=len(hosts),
-        status="running",
+        concurrency=concurrency,
+        host_delay=host_delay,
+        timeouts=timeouts,
     )
 
     SCANS[scan_id] = state
+    SCAN_CANCEL_FLAGS[scan_id] = False
 
-    asyncio.create_task(_run_scan(state, hosts, concurrency, host_delay))
-
-    logger.info(
-        f"Started scan {scan_id}: {cidr} ({len(hosts)} hosts) concurrency={concurrency} delay={host_delay}"
-    )
-
+    asyncio.create_task(_run_scan(state, hosts))
     return state
 
 
-async def _run_scan(state: ScanState, hosts: List[str], concurrency: int, host_delay: float):
-    sem = asyncio.Semaphore(concurrency)
+async def _run_scan(state, hosts):
+    sem = asyncio.Semaphore(state.concurrency)
 
     try:
         for ip in hosts:
-            res = await _scan_host(ip, state.ports, sem)
+            if _cancelled(state.id):
+                state.status = "cancelled"
+                break
+
+            res = await _scan_host(state.id, ip, state.ports, sem, state.timeouts)
             state.results[ip] = res
-            state.completed += 1      # SAFE increment
+            state.completed += 1
 
-            if host_delay > 0:
-                await asyncio.sleep(host_delay)
+            if state.host_delay:
+                await asyncio.sleep(state.host_delay)
 
-        state.status = "finished"
-        logger.info(f"Scan {state.id} completed successfully.")
+        if state.status != "cancelled":
+            state.status = "finished"
+
+        state.finished_at = datetime.utcnow().timestamp()
 
     except Exception as e:
         state.status = "error"
         state.error = str(e)
-        logger.error(f"Scan error {state.id}: {e}", exc_info=True)
+        state.finished_at = datetime.utcnow().timestamp()
+
+    finally:
+        await _write_history(state)
 
 
-def get_scan(scan_id: str) -> Optional[ScanState]:
+# ----------------------------------------------------------------------
+# History Storage
+# ----------------------------------------------------------------------
+
+async def _write_history(state: ScanState):
+    async with AsyncSessionLocal() as session:
+        rec = ScanHistory(
+            id=state.id,
+            cidr=state.cidr,
+            total=state.total,
+            completed=state.completed,
+            status=state.status,
+            speed_concurrency=state.concurrency,
+            speed_delay=state.host_delay,
+            started_at=datetime.utcfromtimestamp(state.started_at),
+            finished_at=datetime.utcfromtimestamp(state.finished_at),
+        )
+        session.add(rec)
+        await session.commit()
+
+
+# ----------------------------------------------------------------------
+# Public API
+# ----------------------------------------------------------------------
+
+def cancel_scan(scan_id: str) -> bool:
+    if scan_id in SCAN_CANCEL_FLAGS:
+        SCAN_CANCEL_FLAGS[scan_id] = True
+        return True
+    return False
+
+
+def get_scan(scan_id: str):
     return SCANS.get(scan_id)

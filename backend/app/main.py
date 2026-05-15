@@ -23,6 +23,11 @@ from app.api.v1.routers.device_actions import router as device_actions_router
 from app.api.v1.routers.device_edit import router as device_edit_router
 from app.api.v1.routers.printers import router as printers_router
 from app.api.v1.routers.settings_ad import router as settings_ad_router
+from app.api.v1.routers.switch import router as switch_router
+from app.api.v1.routers.bc_sessions import router as bc_sessions_router
+from app.switchmgr.api.topology import router as topology_router
+
+
 
 # VPN
 from app.api.v1.routers.settings_vpn import router as settings_vpn_router
@@ -38,6 +43,8 @@ from app.services import device_monitor
 from app.services.ad_config import warm_settings_cache
 from app.services.background_scheduler import vpn_monitor_loop
 from app.services.vpn_history_service import init_history_db
+from app.api.v1.routers.auth import router as auth_router
+
 
 import os
 import sqlite3
@@ -72,12 +79,18 @@ app.include_router(device_actions_router, prefix=settings.API_V1_PREFIX)
 app.include_router(device_edit_router,    prefix=settings.API_V1_PREFIX)
 app.include_router(printers_router,       prefix=settings.API_V1_PREFIX)
 app.include_router(settings_ad_router,    prefix=settings.API_V1_PREFIX)
+app.include_router(bc_sessions_router, prefix=settings.API_V1_PREFIX)
+app.include_router(switch_router)
+app.include_router(topology_router)
 
 # VPN
 app.include_router(settings_vpn_router, prefix=settings.API_V1_PREFIX)
 app.include_router(vpn_router,          prefix=settings.API_V1_PREFIX)
 app.include_router(vpn_alerts_router,   prefix=settings.API_V1_PREFIX)
 app.include_router(vpn_history_router,  prefix=settings.API_V1_PREFIX)
+
+#LDAP
+app.include_router(auth_router, prefix=settings.API_V1_PREFIX)
 
 
 # -------------------------------------------------------------------
@@ -170,6 +183,10 @@ async def on_startup():
 
     # --- Warm AD + VPN settings ---
     await warm_settings_cache()
+    
+    async def startup_event():
+        from app.switchmgr.services.watcher_manager import start_watchers
+        asyncio.create_task(start_watchers())
 
     # --- Start background monitors ---
     device_monitor.start(app)

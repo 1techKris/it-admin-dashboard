@@ -1,72 +1,75 @@
-// frontend/src/features/switches/Switches.tsx
-
-import React, { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useEffect, useState } from "react";
 import api from "../../lib/api/client";
-import SwitchDetailModal from "./SwitchDetailModal";
+import { endpoints } from "../../lib/api/endpoints";
+import { Link } from "react-router-dom";
 
 export default function Switches() {
-  const [selectedSwitch, setSelectedSwitch] = useState(null);
+  const [devices, setDevices] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const switches = useQuery({
-    queryKey: ["switches"],
-    queryFn: () => api.get("/switches").then((res) => res.data),
-    refetchInterval: 10000,
-  });
+  async function load() {
+    try {
+      const res = await api.get(endpoints.network.lastScanResults);
+      const all = res.data.results || [];
+      setDevices(all.filter((d: any) => d.device_class === "switch"));
+    } catch (err) {
+      console.error(err);
+      alert("Failed to load switches");
+    } finally {
+      setLoading(false);
+    }
+  }
 
-  const list = switches.data ?? [];
+  useEffect(() => {
+    load();
+  }, []);
+
+  if (loading) return <div className="p-4">Loading switches…</div>;
 
   return (
-    <div className="space-y-6">
+    <div className="grid gap-4 p-2">
+      <h2 className="text-lg font-semibold">Switches</h2>
 
-      <h1 className="text-2xl font-semibold dark:text-white">
-        Network Switches
-      </h1>
+      <div className="border rounded-xl bg-white dark:bg-slate-800 overflow-x-auto">
+        <table className="w-full text-sm">
+          <thead className="bg-slate-50">
+            <tr>
+              <th className="p-2 text-left">IP</th>
+              <th className="p-2 text-left">Vendor</th>
+              <th className="p-2 text-left">Model</th>
+              <th className="p-2 text-left">Hostname</th>
+              <th className="p-2 text-left">Details</th>
+            </tr>
+          </thead>
 
-      <div className="grid grid-cols-3 gap-4">
-        {list.map((sw: any) => (
-          <div
-            key={sw.id}
-            className="card p-4 rounded-lg cursor-pointer hover:shadow-md transition"
-            onClick={() => setSelectedSwitch(sw)}
-          >
-            <div className="text-lg font-medium dark:text-white">
-              {sw.name}
-            </div>
+          <tbody>
+            {devices.map((d) => (
+              <tr key={d.ip} className="border-t">
+                <td className="p-2 font-mono">{d.ip}</td>
+                <td className="p-2">{d.vendor || "Unknown"}</td>
+                <td className="p-2">{d.model || "Unknown"}</td>
+                <td className="p-2">{d.hostname || "Unknown"}</td>
+                <td className="p-2">
+                  <Link
+                    to={`/devices/${d.ip}`}
+                    className="px-2 py-1 border rounded bg-slate-100 hover:bg-slate-200"
+                  >
+                    Open
+                  </Link>
+                </td>
+              </tr>
+            ))}
 
-            <div className="text-xs text-slate-500 dark:text-[var(--text-muted)] mb-2">
-              {sw.ip} — {sw.vendor} {sw.model}
-            </div>
-
-            <div className="flex items-center gap-2 text-sm">
-              <span
-                className={`w-2 h-2 rounded-full ${
-                  sw.status === "online" ? "bg-green-500" : "bg-red-500"
-                }`}
-              ></span>
-              {sw.status}
-            </div>
-
-            <div className="text-xs mt-2 text-slate-500 dark:text-[var(--text-muted)]">
-              Ports: {sw.ports_up}/{sw.ports_total}
-            </div>
-          </div>
-        ))}
-
-        {list.length === 0 && (
-          <div className="text-slate-500 dark:text-[var(--text-muted)]">
-            No switches found.
-          </div>
-        )}
+            {!devices.length && (
+              <tr>
+                <td colSpan={5} className="p-3 text-slate-500">
+                  No switches detected
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
       </div>
-
-      {/* DETAIL MODAL */}
-      {selectedSwitch && (
-        <SwitchDetailModal
-          sw={selectedSwitch}
-          onClose={() => setSelectedSwitch(null)}
-        />
-      )}
     </div>
   );
 }

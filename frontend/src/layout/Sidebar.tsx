@@ -27,6 +27,11 @@ export default function Sidebar() {
 
       <div>
         <div className="text-xs font-semibold text-slate-500 mb-1">Devices & Network</div>
+
+        {/* NEW — Switches link */}
+        {item("/switches", "Switches")}
+		{item("/topology", "Topology Graph")}
+		{item("/topology/analysis", "Topology Analysis")}
         {item("/servers", "Servers")}
         {item("/printers", "Printers")}
         {item("/network", "Network Scanner")}
@@ -37,6 +42,7 @@ export default function Sidebar() {
         {item("/ad/users", "AD Users")}
         {item("/ad/groups", "AD Groups")}
         {item("/ad/computers", "AD Computers")}
+		{item("/business-central/sessions", "BC Sessions")}
       </div>
 
       <div>
